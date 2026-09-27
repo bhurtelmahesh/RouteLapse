@@ -19,7 +19,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
-import { parseGpx } from "@/lib/gpx";
+import { importActivityFiles } from "@/lib/activity-import";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { RouteMap, type CameraMode } from "./route-map";
 
@@ -43,7 +43,8 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Gauge; label: strin
 }
 
 export function Studio() {
-  const [track, setTrack] = useState<Track>(() => demoTrack());
+  const [tracks, setTracks] = useState<Track[]>(() => [demoTrack()]);
+  const [selectedTrack, setSelectedTrack] = useState(0);
   const [progress, setProgress] = useState(0.22);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(18);
@@ -54,6 +55,7 @@ export function Studio() {
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const progressRef = useRef(progress);
+  const track = tracks[selectedTrack] ?? tracks[0];
 
   useEffect(() => {
     progressRef.current = progress;
@@ -74,13 +76,13 @@ export function Studio() {
     return () => cancelAnimationFrame(frame);
   }, [playing, duration]);
 
-  async function importFile(file?: File) {
-    if (!file) return;
+  async function importFiles(files: File[]) {
+    if (!files.length) return;
     setError("");
     try {
-      if (!file.name.toLowerCase().endsWith(".gpx")) throw new Error("Choose a .gpx activity file.");
-      const imported = parseGpx(await file.text(), file.name);
-      setTrack(imported);
+      const imported = await importActivityFiles(files);
+      setTracks(imported);
+      setSelectedTrack(0);
       setProgress(0);
       progressRef.current = 0;
       setPlaying(false);
@@ -90,13 +92,13 @@ export function Studio() {
   }
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
-    void importFile(event.target.files?.[0]);
+    void importFiles(Array.from(event.target.files ?? []));
     event.target.value = "";
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
-    void importFile(event.dataTransfer.files?.[0]);
+    void importFiles(Array.from(event.dataTransfer.files ?? []));
   }
 
   function resetPlayback() {
@@ -106,7 +108,8 @@ export function Studio() {
   }
 
   function showDemo() {
-    setTrack(demoTrack());
+    setTracks([demoTrack()]);
+    setSelectedTrack(0);
     setError("");
     resetPlayback();
   }
@@ -143,7 +146,7 @@ export function Studio() {
             <span className="rounded-md bg-[#d8ff52]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#d8ff52]">GPX ready</span>
           </div>
 
-          <input ref={inputRef} type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" onChange={handleFile} className="hidden" />
+          <input ref={inputRef} type="file" multiple accept=".gpx,.zip,application/gpx+xml,application/zip,application/xml,text/xml" onChange={handleFile} className="hidden" />
           <div
             role="button"
             tabIndex={0}
@@ -158,11 +161,31 @@ export function Studio() {
             <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-white/[0.055] text-[#d8ff52] transition group-hover:scale-105">
               <Upload size={18} />
             </div>
-            <p className="text-sm font-semibold">Drop a GPX file</p>
-            <p className="mt-1 text-[11px] leading-4 text-[#74808b]">or click to choose an activity</p>
+            <p className="text-sm font-semibold">Drop activities here</p>
+            <p className="mt-1 text-[11px] leading-4 text-[#74808b]">GPX files or an Adidas export ZIP</p>
           </div>
 
           {error && <p className="mb-3 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-[11px] leading-4 text-red-200">{error}</p>}
+
+          {tracks.length > 1 && (
+            <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f8b97]">
+              Imported activities
+              <select
+                value={selectedTrack}
+                onChange={(event) => {
+                  setSelectedTrack(Number(event.target.value));
+                  resetPlayback();
+                }}
+                className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-xs normal-case tracking-normal text-white"
+              >
+                {tracks.map((item, index) => (
+                  <option key={`${item.name}-${index}`} value={index}>
+                    {index + 1}. {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="rounded-2xl border border-white/9 bg-[#10151c] p-4 shadow-xl shadow-black/10">
             <div className="mb-4 flex items-start justify-between gap-3">

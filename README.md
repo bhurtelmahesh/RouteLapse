@@ -7,8 +7,9 @@ Live app: [routelapse.web.app](https://routelapse.web.app/)
 ## Current foundation
 
 - GPX drag-and-drop import and validation
+- Multi-file and Adidas Running export ZIP import
 - Locally calculated distance, duration, elevation gain, and track-point metrics
-- Animated MapLibre route preview
+- Smooth distance-interpolated Leaflet route preview without a WebGL requirement
 - Overview, follow, and cinematic camera modes
 - Video duration, camera pitch, aspect ratio, and route color controls
 - Responsive editor for desktop and mobile
@@ -42,11 +43,7 @@ npm run build
 
 ## Roadmap
 
-1. Deterministic Remotion scene model and HD MP4 render worker
-2. Map themes, elevation-aware cameras, overlays, and timeline editing
-3. Firebase authentication and project storage
-4. Strava OAuth and activity import
-5. 4K/60 fps, music, photos, reusable templates, and batch rendering
+See [the revised product plan](docs/PRODUCT_PLAN.md) for the ingestion, Strava OAuth, rendering, and production milestones.
 
 ## Map attribution
 

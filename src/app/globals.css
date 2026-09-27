@@ -77,15 +77,29 @@ input[type="range"] {
   max-height: calc(100vh - 228px);
 }
 
-.maplibregl-map,
-.maplibregl-canvas {
+.leaflet-container,
+.leaflet-pane {
   border-radius: inherit;
 }
 
-.maplibregl-ctrl-bottom-left,
-.maplibregl-ctrl-bottom-right {
+.leaflet-control-attribution {
   opacity: 0.65;
   font-size: 9px;
+}
+
+.leaflet-container {
+  background: #11161c;
+  font-family: inherit;
+}
+
+.leaflet-tile-pane {
+  filter: grayscale(0.78) saturate(0.6) brightness(0.62) contrast(1.08);
+}
+
+.leaflet-control-zoom a {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(9, 13, 17, 0.88) !important;
+  color: #f4f7f8 !important;
 }
 
 .range-track {

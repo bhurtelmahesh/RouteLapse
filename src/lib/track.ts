@@ -22,6 +22,12 @@ export type Track = {
   bounds: TrackBounds;
 };
 
+export type TrackSample = {
+  point: TrackPoint;
+  previous: TrackPoint;
+  path: TrackPoint[];
+};
+
 const EARTH_RADIUS_METERS = 6_371_000;
 
 function toRadians(value: number) {
@@ -55,6 +61,57 @@ export function bearingBetween(a: TrackPoint, b: TrackPoint) {
     Math.sin(latitudeA) * Math.cos(latitudeB) * Math.cos(longitudeDelta);
 
   return (Math.atan2(y, x) * 180) / Math.PI;
+}
+
+function interpolatePoint(a: TrackPoint, b: TrackPoint, amount: number): TrackPoint {
+  const interpolateOptional = (start?: number, end?: number) =>
+    start !== undefined && end !== undefined ? start + (end - start) * amount : start ?? end;
+  const startTime = a.time ? Date.parse(a.time) : Number.NaN;
+  const endTime = b.time ? Date.parse(b.time) : Number.NaN;
+
+  return {
+    latitude: a.latitude + (b.latitude - a.latitude) * amount,
+    longitude: a.longitude + (b.longitude - a.longitude) * amount,
+    elevation: interpolateOptional(a.elevation, b.elevation),
+    time:
+      Number.isFinite(startTime) && Number.isFinite(endTime)
+        ? new Date(startTime + (endTime - startTime) * amount).toISOString()
+        : a.time ?? b.time,
+  };
+}
+
+export function sampleTrackAtProgress(track: Track, progress: number): TrackSample {
+  const normalizedProgress = Math.max(0, Math.min(1, progress));
+  const segmentDistances = track.points.slice(1).map((point, index) =>
+    distanceBetween(track.points[index], point),
+  );
+  const totalDistance = segmentDistances.reduce((total, distance) => total + distance, 0);
+  const targetDistance = totalDistance * normalizedProgress;
+  let travelledDistance = 0;
+
+  for (let index = 0; index < segmentDistances.length; index += 1) {
+    const segmentDistance = segmentDistances[index];
+    const isLastSegment = index === segmentDistances.length - 1;
+    if (travelledDistance + segmentDistance >= targetDistance || isLastSegment) {
+      const segmentProgress = segmentDistance
+        ? Math.max(0, Math.min(1, (targetDistance - travelledDistance) / segmentDistance))
+        : 0;
+      const point = interpolatePoint(track.points[index], track.points[index + 1], segmentProgress);
+      return {
+        point,
+        previous: track.points[index],
+        path: [...track.points.slice(0, index + 1), point],
+      };
+    }
+    travelledDistance += segmentDistance;
+  }
+
+  const lastPoint = track.points[track.points.length - 1];
+  return {
+    point: lastPoint,
+    previous: track.points[track.points.length - 2],
+    path: track.points,
+  };
 }
 
 export function buildTrack(name: string, sport: string, points: TrackPoint[]): Track {
