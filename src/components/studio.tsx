@@ -14,22 +14,22 @@ import {
   Play,
   RotateCcw,
   Route,
+  Search,
   Sparkles,
   Upload,
   WifiOff,
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { importActivityFiles } from "@/lib/activity-import";
+import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
+import type { MapStyle } from "@/lib/map-styles";
+import { aspectRatio, type Aspect, type CameraMode } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
-import { RouteMap, type CameraMode, type MapStyle } from "./route-map";
-
-type Aspect = "16:9" | "9:16" | "1:1";
-
-const aspectRatio: Record<Aspect, string> = {
-  "16:9": "16 / 9",
-  "9:16": "9 / 16",
-  "1:1": "1 / 1",
-};
+import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
+import { ActivityProfile } from "./activity-profile";
+import { PwaStatus } from "./pwa-status";
+import { StravaImport } from "./strava-import";
+import { RouteMap } from "./route-map";
 
 function Metric({ icon: Icon, label, value }: { icon: typeof Gauge; label: string; value: string }) {
   return (
@@ -54,9 +54,45 @@ export function Studio() {
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [sportFilter, setSportFilter] = useState("all");
+  const [saved, setSaved] = useState(false);
+  const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
+  const [renderedVideo, setRenderedVideo] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [renderError, setRenderError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const progressRef = useRef(progress);
+  const renderCanvasRef = useRef<HTMLCanvasElement>(null);
+  const renderAbortRef = useRef<AbortController | null>(null);
   const track = tracks[selectedTrack] ?? tracks[0];
+  const sports = Array.from(new Set(tracks.map((item) => item.sport))).sort();
+  const filteredTracks = tracks
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => sportFilter === "all" || item.sport === sportFilter)
+    .filter(({ item }) => item.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  useEffect(() => {
+    const settings = loadProjectSettings();
+    if (!settings) return;
+    const frame = window.requestAnimationFrame(() => {
+      setDuration(settings.duration);
+      setCameraMode(settings.cameraMode);
+      setPitch(settings.pitch);
+      setLineColor(settings.lineColor);
+      setAspect(settings.aspect);
+      setMapStyle(settings.mapStyle);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => () => renderAbortRef.current?.abort(), []);
+
+  useEffect(() => {
+    const url = renderedVideo?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [renderedVideo]);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -82,7 +118,11 @@ export function Studio() {
     setError("");
     try {
       const imported = await importActivityFiles(files);
-      setTracks(imported);
+      setTracks(
+        [...imported].sort((a, b) =>
+          (b.startedAt ?? "").localeCompare(a.startedAt ?? ""),
+        ),
+      );
       setSelectedTrack(0);
       setProgress(0);
       progressRef.current = 0;
@@ -115,6 +155,49 @@ export function Studio() {
     resetPlayback();
   }
 
+  function saveProject() {
+    saveProjectSettings({ duration, cameraMode, pitch, lineColor, aspect, mapStyle });
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2_000);
+  }
+
+  async function renderVideo() {
+    if (renderProgress && renderProgress.phase !== "complete") {
+      renderAbortRef.current?.abort();
+      return;
+    }
+    if (!renderCanvasRef.current) return;
+    setPlaying(false);
+    setRenderError("");
+    if (renderedVideo) URL.revokeObjectURL(renderedVideo.url);
+    setRenderedVideo(null);
+    const controller = new AbortController();
+    renderAbortRef.current = controller;
+    try {
+      const output = await renderRouteVideo(
+        renderCanvasRef.current,
+        track,
+        { duration, cameraMode, pitch, lineColor, aspect, mapStyle },
+        controller.signal,
+        setRenderProgress,
+      );
+      setRenderedVideo({
+        url: URL.createObjectURL(output.blob),
+        name: videoFileName(track, output.extension),
+        type: output.extension.toUpperCase(),
+      });
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === "AbortError") {
+        setRenderProgress(null);
+      } else {
+        setRenderError(caught instanceof Error ? caught.message : "The video could not be rendered.");
+        setRenderProgress(null);
+      }
+    } finally {
+      renderAbortRef.current = null;
+    }
+  }
+
   const activityMinutes = track.durationSeconds ? Math.round(track.durationSeconds / 60) : 0;
   const compressed = activityMinutes ? Math.max(1, Math.round((activityMinutes * 60) / duration)) : 1;
 
@@ -131,11 +214,12 @@ export function Studio() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <PwaStatus />
           <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-[#8d99a5] sm:flex">
             <LockKeyhole size={12} className="text-[#d8ff52]" /> Routes stay local
           </div>
-          <button className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-[#c5ccd2] transition hover:bg-white/[0.08]">
-            Save project
+          <button onClick={saveProject} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-[#c5ccd2] transition hover:bg-white/[0.08]">
+            {saved ? "Saved locally" : "Save project"}
           </button>
         </div>
       </header>
@@ -148,6 +232,7 @@ export function Studio() {
           </div>
 
           <input ref={inputRef} type="file" multiple accept=".gpx,.zip,application/gpx+xml,application/zip,application/xml,text/xml" onChange={handleFile} className="hidden" />
+          <StravaImport onImport={(importedTrack) => { setTracks((current) => [importedTrack, ...current]); setSelectedTrack(0); resetPlayback(); }} />
           <div
             role="button"
             tabIndex={0}
@@ -169,23 +254,25 @@ export function Studio() {
           {error && <p className="mb-3 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-[11px] leading-4 text-red-200">{error}</p>}
 
           {tracks.length > 1 && (
-            <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f8b97]">
-              Imported activities
-              <select
-                value={selectedTrack}
-                onChange={(event) => {
-                  setSelectedTrack(Number(event.target.value));
-                  resetPlayback();
-                }}
-                className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-xs normal-case tracking-normal text-white"
-              >
-                {tracks.map((item, index) => (
-                  <option key={`${item.name}-${index}`} value={index}>
-                    {index + 1}. {item.name}
-                  </option>
-                ))}
+            <div className="mb-3 space-y-2">
+              <div className="relative">
+                <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-[#6f7b86]" />
+                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search activities" aria-label="Search activities" className="w-full rounded-lg border border-white/10 bg-[#10151c] py-2 pl-8 pr-3 text-xs text-white placeholder:text-[#59646e]" />
+              </div>
+              <select value={sportFilter} onChange={(event) => setSportFilter(event.target.value)} aria-label="Filter by sport" className="w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-xs text-white">
+                <option value="all">All sports ({tracks.length})</option>
+                {sports.map((sport) => <option key={sport} value={sport}>{sport}</option>)}
               </select>
-            </label>
+              <div className="max-h-44 space-y-1 overflow-y-auto pr-1" aria-label="Imported activities">
+                {filteredTracks.map(({ item, index }) => (
+                  <button key={`${item.name}-${index}`} onClick={() => { setSelectedTrack(index); resetPlayback(); }} className={`w-full rounded-lg border px-3 py-2 text-left transition ${selectedTrack === index ? "border-[#d8ff52]/40 bg-[#d8ff52]/7" : "border-white/7 bg-white/[0.02] hover:border-white/15"}`}>
+                    <span className="block truncate text-[11px] font-semibold text-white">{item.name}</span>
+                    <span className="mt-0.5 block text-[9px] uppercase tracking-wider text-[#74808b]">{item.startedAt ? new Date(item.startedAt).toLocaleDateString() : "Date unavailable"} · {item.sport}</span>
+                  </button>
+                ))}
+                {!filteredTracks.length && <p className="py-3 text-center text-[10px] text-[#6f7b86]">No matching activities</p>}
+              </div>
+            </div>
           )}
 
           <div className="rounded-2xl border border-white/9 bg-[#10151c] p-4 shadow-xl shadow-black/10">
@@ -279,6 +366,10 @@ export function Studio() {
               </button>
             </div>
           </div>
+
+          <div className="mt-3">
+            <ActivityProfile track={track} progress={progress} />
+          </div>
         </section>
 
         <aside className="inspector-panel border-l border-white/8 bg-[#0a0e13] p-4">
@@ -350,9 +441,26 @@ export function Studio() {
               <p className="text-[10px] leading-4 text-[#89958c]">Frame rendering and downloadable MP4 output.</p>
             </div>
 
-            <button disabled className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#d8ff52] px-4 py-3 text-xs font-bold text-[#0b0f03] opacity-60 sm:mt-0 lg:mt-5">
-              <Download size={15} /> Render HD video
-            </button>
+            <div className="mt-5 sm:mt-0 lg:mt-5">
+              <canvas ref={renderCanvasRef} className="hidden" aria-hidden="true" />
+              {renderProgress && renderProgress.phase !== "complete" && (
+                <div className="mb-2">
+                  <div className="mb-1 flex justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#82909a]"><span>{renderProgress.phase === "preparing" ? "Loading HD map" : "Recording video"}</span><span>{Math.round(renderProgress.progress * 100)}%</span></div>
+                  <div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#d8ff52] transition-[width]" style={{ width: `${renderProgress.progress * 100}%` }} /></div>
+                </div>
+              )}
+              {renderError && <p className="mb-2 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-[10px] leading-4 text-red-200">{renderError}</p>}
+              {renderedVideo ? (
+                <a href={renderedVideo.url} download={renderedVideo.name} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d8ff52] px-4 py-3 text-xs font-bold text-[#0b0f03] transition hover:brightness-110">
+                  <Download size={15} /> Download {renderedVideo.type} video
+                </a>
+              ) : (
+                <button onClick={() => void renderVideo()} className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold transition ${renderProgress ? "border border-white/12 bg-white/[0.04] text-white hover:bg-white/[0.08]" : "bg-[#d8ff52] text-[#0b0f03] hover:brightness-110"}`}>
+                  <Download size={15} /> {renderProgress ? "Cancel render" : "Render HD video"}
+                </button>
+              )}
+              <p className="mt-2 text-center text-[9px] leading-4 text-[#64707a]">Rendered locally in real time. Keep this tab open.</p>
+            </div>
           </div>
         </aside>
       </div>

@@ -24,8 +24,9 @@ RouteLapse turns a recorded outdoor activity into a smooth, cinematic, share-rea
 - [x] Continuous distance-based route sampling
 - [x] Interactive map that does not require WebGL
 - [x] Multi-GPX and Adidas export ZIP import
-- [ ] Activity library with dates, sport filtering, and search
-- [ ] Elevation and pace timeline
+- [x] Activity library with dates, sport filtering, and search
+- [x] Elevation and pace timeline
+- [x] Local project-setting persistence
 
 ### M2 — Strava connection
 
@@ -36,15 +37,20 @@ RouteLapse turns a recorded outdoor activity into a smooth, cinematic, share-rea
 - [ ] Fetch activities and latitude/longitude streams on demand
 - [ ] Let the athlete disconnect and delete imported provider data
 
+The secure 2nd-generation function, refresh flow, activity endpoints, and disconnect path are implemented in `functions/`. Deployment remains blocked on the external app registration, secrets, Firestore activation, and Blaze billing.
+
 Strava requires a server-side client secret for the authorization-code exchange. It must not be embedded in the static PWA.
 
 ### M3 — Real video rendering
 
-- [ ] Shared deterministic scene/timeline model
-- [ ] Frame renderer with licensed production map tiles
+- [x] Shared deterministic scene/timeline model
+- [x] Full HD browser frame renderer with attributed map tiles
+- [x] Chrome H.264/MP4 encoding with WebM fallback
 - [ ] Render-job API, progress reporting, cancellation, and retry
-- [ ] FFmpeg H.264 encoding for 1080p landscape, portrait, and square MP4
-- [ ] Downloadable output and short-lived storage URLs
+- [x] Local progress reporting and cancellation
+- [ ] Cloud FFmpeg encoding for 1080p/4K render jobs
+- [x] Downloadable local output
+- [ ] Short-lived Cloud Storage URLs for cloud renders
 - [ ] Visual regression tests comparing preview and rendered frames
 
 ### M4 — Production hardening
@@ -53,6 +59,7 @@ Strava requires a server-side client secret for the authorization-code exchange.
 - [ ] Rate limits, quotas, abuse protection, and render budgets
 - [ ] Privacy controls, retention policy, data export, and account deletion
 - [ ] Accessibility, Core Web Vitals, analytics consent, and error monitoring
+- [x] Install prompt, offline shell, and bounded recent map-tile cache
 - [ ] 4K/60 fps, photos, music, templates, and batch rendering
 
 ## Immediate next decisions

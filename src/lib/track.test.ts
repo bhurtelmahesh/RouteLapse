@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
 import { parseGpxArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
-import { buildTrack, demoTrack, distanceBetween, formatDuration, sampleTrackAtProgress } from "./track";
+import { renderResolution } from "./scene";
+import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
   it("calculates a geographic distance", () => {
@@ -54,5 +55,21 @@ describe("track utilities", () => {
 
     expect(halfway.point.longitude).toBeCloseTo(0.002, 4);
     expect(halfway.path).toHaveLength(3);
+  });
+
+  it("builds distance, elevation, and pace profile data", () => {
+    const track = buildTrack("Profile", "running", [
+      { latitude: 35, longitude: 139, elevation: 10, time: "2026-01-01T00:00:00Z" },
+      { latitude: 35.001, longitude: 139, elevation: 15, time: "2026-01-01T00:01:00Z" },
+    ]);
+    const profile = buildTrackProfile(track);
+    expect(profile[1].distanceMeters).toBeGreaterThan(100);
+    expect(profile[1].paceSecondsPerKilometer).toBeGreaterThan(500);
+  });
+
+  it("uses Full HD dimensions for every aspect ratio", () => {
+    expect(renderResolution("16:9")).toEqual({ width: 1920, height: 1080 });
+    expect(renderResolution("9:16")).toEqual({ width: 1080, height: 1920 });
+    expect(renderResolution("1:1")).toEqual({ width: 1080, height: 1080 });
   });
 });

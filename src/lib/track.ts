@@ -15,11 +15,18 @@ export type TrackBounds = {
 export type Track = {
   name: string;
   sport: string;
+  startedAt?: string;
   points: TrackPoint[];
   distanceMeters: number;
   durationSeconds: number;
   elevationGainMeters: number;
   bounds: TrackBounds;
+};
+
+export type TrackProfilePoint = {
+  distanceMeters: number;
+  elevation?: number;
+  paceSecondsPerKilometer?: number;
 };
 
 export type TrackSample = {
@@ -144,6 +151,7 @@ export function buildTrack(name: string, sport: string, points: TrackPoint[]): T
   return {
     name,
     sport: sport || "activity",
+    startedAt: timestamps.length ? new Date(Math.min(...timestamps)).toISOString() : undefined,
     points,
     distanceMeters,
     durationSeconds,
@@ -155,6 +163,33 @@ export function buildTrack(name: string, sport: string, points: TrackPoint[]): T
       maxLongitude: Math.max(...points.map((point) => point.longitude)),
     },
   };
+}
+
+export function buildTrackProfile(track: Track, maximumPoints = 160): TrackProfilePoint[] {
+  let distanceMeters = 0;
+  const profile = track.points.map((point, index) => {
+    if (index === 0) return { distanceMeters: 0, elevation: point.elevation };
+
+    const previous = track.points[index - 1];
+    const segmentDistance = distanceBetween(previous, point);
+    distanceMeters += segmentDistance;
+    const previousTime = previous.time ? Date.parse(previous.time) : Number.NaN;
+    const time = point.time ? Date.parse(point.time) : Number.NaN;
+    const seconds = (time - previousTime) / 1000;
+    const paceSecondsPerKilometer =
+      segmentDistance > 2 && Number.isFinite(seconds) && seconds > 0
+        ? Math.min(3_600, (seconds / segmentDistance) * 1_000)
+        : undefined;
+
+    return { distanceMeters, elevation: point.elevation, paceSecondsPerKilometer };
+  });
+
+  if (profile.length <= maximumPoints) return profile;
+  const sampled: TrackProfilePoint[] = [];
+  for (let index = 0; index < maximumPoints; index += 1) {
+    sampled.push(profile[Math.round((index / (maximumPoints - 1)) * (profile.length - 1))]);
+  }
+  return sampled;
 }
 
 export function formatDistance(distanceMeters: number) {

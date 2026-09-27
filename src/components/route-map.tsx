@@ -9,9 +9,10 @@ import type {
 } from "leaflet";
 import type { Track, TrackPoint } from "@/lib/track";
 import { sampleTrackAtProgress } from "@/lib/track";
+import { mapTileLayers, type MapStyle } from "@/lib/map-styles";
+import type { CameraMode } from "@/lib/scene";
 
-export type CameraMode = "overview" | "follow" | "cinematic";
-export type MapStyle = "street" | "satellite" | "hybrid" | "dark";
+export type { CameraMode } from "@/lib/scene";
 
 type Props = {
   track: Track;
@@ -21,12 +22,6 @@ type Props = {
   lineColor: string;
   mapStyle: MapStyle;
 };
-
-const imageryAttribution =
-  "Tiles © Esri — Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community";
-
-const referenceAttribution =
-  "Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS User Community";
 
 function toLatLng(point: TrackPoint): [number, number] {
   return [point.latitude, point.longitude];
@@ -101,63 +96,15 @@ export function RouteMap({ track, progress, cameraMode, pitch, lineColor, mapSty
       if (disposed || !mapRef.current) return;
       tileLayersRef.current.forEach((layer) => layer.remove());
 
-      const layers: TileLayer[] = [];
-      if (mapStyle === "street") {
-        layers.push(
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap contributors",
-            className: "basemap-tiles basemap-street",
-            crossOrigin: true,
-            maxZoom: 19,
-            subdomains: "abc",
-          }),
-        );
-      } else if (mapStyle === "dark") {
-        layers.push(
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-            attribution: "© OpenStreetMap contributors © CARTO",
-            className: "basemap-tiles basemap-dark",
-            crossOrigin: true,
-            maxZoom: 20,
-            subdomains: "abcd",
-          }),
-        );
-      } else {
-        layers.push(
-          L.tileLayer(
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            {
-              attribution: imageryAttribution,
-              className: "basemap-tiles basemap-satellite",
-              crossOrigin: true,
-              maxZoom: 19,
-            },
-          ),
-        );
-
-        if (mapStyle === "hybrid") {
-          layers.push(
-            L.tileLayer(
-              "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
-              {
-                attribution: referenceAttribution,
-                className: "basemap-reference",
-                crossOrigin: true,
-                maxZoom: 19,
-              },
-            ),
-            L.tileLayer(
-              "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-              {
-                attribution: referenceAttribution,
-                className: "basemap-reference",
-                crossOrigin: true,
-                maxZoom: 19,
-              },
-            ),
-          );
-        }
-      }
+      const layers: TileLayer[] = mapTileLayers[mapStyle].map((layer) =>
+        L.tileLayer(layer.url, {
+          attribution: layer.attribution,
+          className: layer.className,
+          crossOrigin: true,
+          maxZoom: layer.maxZoom,
+          ...(layer.subdomains ? { subdomains: layer.subdomains } : {}),
+        }),
+      );
 
       layers.forEach((layer) => layer.addTo(map));
       tileLayersRef.current = layers;
