@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RouteLapse
 
-## Getting Started
+RouteLapse turns GPX activity tracks into customizable, cinematic route videos. It is being built as an installable Progressive Web App with a privacy-first local editing workflow and a cloud HD rendering pipeline.
 
-First, run the development server:
+## Current foundation
+
+- GPX drag-and-drop import and validation
+- Locally calculated distance, duration, elevation gain, and track-point metrics
+- Animated MapLibre route preview
+- Overview, follow, and cinematic camera modes
+- Video duration, camera pitch, aspect ratio, and route color controls
+- Responsive editor for desktop and mobile
+- Web app manifest and production service worker
+- Security headers, unit tests, linting, and type checking
+
+No personal GPX files are stored in this repository.
+
+## Development
+
+Use Node.js 20.9 or newer (Node.js 24 is used in CI).
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-## Learn More
+## Roadmap
 
-To learn more about Next.js, take a look at the following resources:
+1. Deterministic Remotion scene model and HD MP4 render worker
+2. Map themes, elevation-aware cameras, overlays, and timeline editing
+3. Firebase authentication, project storage, and hosting
+4. Strava OAuth and activity import
+5. 4K/60 fps, music, photos, reusable templates, and batch rendering
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Map attribution
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The development preview uses OpenStreetMap tiles and preserves contributor attribution. A production tile provider and export licensing policy will be selected before public video rendering is enabled.
