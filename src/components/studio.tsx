@@ -21,7 +21,7 @@ import {
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { importActivityFiles } from "@/lib/activity-import";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
-import { RouteMap, type CameraMode } from "./route-map";
+import { RouteMap, type CameraMode, type MapStyle } from "./route-map";
 
 type Aspect = "16:9" | "9:16" | "1:1";
 
@@ -51,6 +51,7 @@ export function Studio() {
   const [cameraMode, setCameraMode] = useState<CameraMode>("cinematic");
   const [pitch, setPitch] = useState(48);
   const [lineColor, setLineColor] = useState("#d8ff52");
+  const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -227,7 +228,7 @@ export function Studio() {
               className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
-              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} lineColor={lineColor} />
+              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} lineColor={lineColor} mapStyle={mapStyle} />
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/65 to-transparent p-4 sm:p-6">
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#d8ff52]">RouteLapse original</div>
@@ -320,6 +321,22 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Map style</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["street", "satellite", "hybrid", "dark"] as MapStyle[]).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => setMapStyle(style)}
+                    aria-pressed={mapStyle === style}
+                    className={`rounded-lg border px-3 py-2 text-[10px] font-semibold capitalize transition ${mapStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f] hover:border-white/16 hover:text-white"}`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 sm:mt-0 lg:mt-5">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Route color</label>
               <div className="flex gap-2">
                 {["#d8ff52", "#ff6b45", "#6bdcff", "#f7f7f2"].map((color) => (
@@ -330,7 +347,7 @@ export function Studio() {
 
             <div className="mt-5 rounded-xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-3 sm:mt-0 lg:mt-5">
               <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#d8ff52]"><Sparkles size={12} /> Next milestone</div>
-              <p className="text-[10px] leading-4 text-[#89958c]">Frame rendering, map themes, and downloadable MP4 output.</p>
+              <p className="text-[10px] leading-4 text-[#89958c]">Frame rendering and downloadable MP4 output.</p>
             </div>
 
             <button disabled className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#d8ff52] px-4 py-3 text-xs font-bold text-[#0b0f03] opacity-60 sm:mt-0 lg:mt-5">

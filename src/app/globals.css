@@ -92,8 +92,16 @@ input[type="range"] {
   font-family: inherit;
 }
 
-.leaflet-tile-pane {
+.basemap-street {
   filter: grayscale(0.78) saturate(0.6) brightness(0.62) contrast(1.08);
+}
+
+.basemap-dark {
+  filter: saturate(0.72) brightness(0.82) contrast(1.08);
+}
+
+.basemap-satellite {
+  filter: saturate(1.06) contrast(1.03);
 }
 
 .leaflet-control-zoom a {

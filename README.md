@@ -10,6 +10,7 @@ Live app: [routelapse.web.app](https://routelapse.web.app/)
 - Multi-file and Adidas Running export ZIP import
 - Locally calculated distance, duration, elevation gain, and track-point metrics
 - Smooth distance-interpolated Leaflet route preview without a WebGL requirement
+- Switchable Street, Satellite, Hybrid, and Dark preview styles
 - Overview, follow, and cinematic camera modes
 - Video duration, camera pitch, aspect ratio, and route color controls
 - Responsive editor for desktop and mobile
@@ -47,4 +48,4 @@ See [the revised product plan](docs/PRODUCT_PLAN.md) for the ingestion, Strava O
 
 ## Map attribution
 
-The development preview uses OpenStreetMap tiles and preserves contributor attribution. A production tile provider and export licensing policy will be selected before public video rendering is enabled.
+The preview uses OpenStreetMap, CARTO, and Esri tile services and keeps each provider's attribution visible. A separate export licensing policy will be finalized before public video rendering is enabled.
