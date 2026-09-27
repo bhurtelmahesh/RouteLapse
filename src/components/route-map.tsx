@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import type { Track } from "@/lib/track";
@@ -39,36 +39,111 @@ function lineFeature(track: Track, end = track.points.length) {
   };
 }
 
+function FallbackRoute({ track, progress, lineColor }: Pick<Props, "track" | "progress" | "lineColor">) {
+  const { routePath, progressPath, marker } = useMemo(() => {
+    const width = 1000;
+    const height = 600;
+    const padding = 72;
+    const longitudeSpan = Math.max(track.bounds.maxLongitude - track.bounds.minLongitude, 0.000001);
+    const latitudeSpan = Math.max(track.bounds.maxLatitude - track.bounds.minLatitude, 0.000001);
+    const projected = track.points.map((point) => ({
+      x: padding + ((point.longitude - track.bounds.minLongitude) / longitudeSpan) * (width - padding * 2),
+      y: height - padding - ((point.latitude - track.bounds.minLatitude) / latitudeSpan) * (height - padding * 2),
+    }));
+    const toPath = (points: typeof projected) =>
+      points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+    const progressIndex = Math.max(1, Math.min(projected.length - 1, Math.round(progress * (projected.length - 1))));
+
+    return {
+      routePath: toPath(projected),
+      progressPath: toPath(projected.slice(0, progressIndex + 1)),
+      marker: projected[progressIndex],
+    };
+  }, [track, progress]);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#11161c]" aria-label="Animated route preview map in compatibility mode">
+      <svg className="h-full w-full" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice" role="img" aria-label={`Route preview for ${track.name}`}>
+        <defs>
+          <pattern id="fallback-grid" width="54" height="54" patternUnits="userSpaceOnUse">
+            <path d="M 54 0 L 0 0 0 54" fill="none" stroke="#ffffff" strokeOpacity="0.055" strokeWidth="1" />
+          </pattern>
+          <filter id="route-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="7" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <radialGradient id="fallback-vignette" cx="50%" cy="42%" r="70%">
+            <stop offset="0%" stopColor="#26313a" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#080b0f" stopOpacity="0.95" />
+          </radialGradient>
+        </defs>
+        <rect width="1000" height="600" fill="url(#fallback-vignette)" />
+        <rect width="1000" height="600" fill="url(#fallback-grid)" />
+        <path d="M60 140 C220 190 230 75 410 112 S690 236 960 156" fill="none" stroke="#ffffff" strokeOpacity="0.045" strokeWidth="26" />
+        <path d="M95 510 C260 416 360 522 515 428 S784 332 940 412" fill="none" stroke="#ffffff" strokeOpacity="0.04" strokeWidth="18" />
+        <path d={routePath} fill="none" stroke="#020405" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.65" strokeWidth="18" />
+        <path d={routePath} fill="none" stroke="#85919b" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.48" strokeWidth="8" />
+        <path d={progressPath} fill="none" filter="url(#route-glow)" stroke={lineColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="10" />
+        {marker && (
+          <>
+            <circle cx={marker.x} cy={marker.y} fill={lineColor} opacity="0.22" r="27" />
+            <circle cx={marker.x} cy={marker.y} fill="#ffffff" r="10" stroke={lineColor} strokeWidth="7" />
+          </>
+        )}
+      </svg>
+      <div className="absolute bottom-3 right-3 rounded-md border border-white/10 bg-black/45 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/55 backdrop-blur-sm">
+        Compatibility preview · WebGL2 unavailable
+      </div>
+    </div>
+  );
+}
+
 export function RouteMap({ track, progress, cameraMode, pitch, lineColor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      center: [139.75, 35.685],
-      zoom: 13.4,
-      pitch: 0,
-      attributionControl: false,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
+    const scheduleFallback = () => {
+      const timer = window.setTimeout(() => setUseFallback(true), 0);
+      return () => window.clearTimeout(timer);
+    };
+
+    const supportCanvas = document.createElement("canvas");
+    if (!supportCanvas.getContext("webgl2")) {
+      return scheduleFallback();
+    }
+
+    let map: MapLibreMap;
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        center: [139.75, 35.685],
+        zoom: 13.4,
+        pitch: 0,
+        attributionControl: false,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "© OpenStreetMap contributors",
+            },
           },
+          layers: [
+            { id: "background", type: "background", paint: { "background-color": "#11161c" } },
+            { id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -0.8, "raster-brightness-max": 0.58 } },
+          ],
         },
-        layers: [
-          { id: "background", type: "background", paint: { "background-color": "#11161c" } },
-          { id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -0.8, "raster-brightness-max": 0.58 } },
-        ],
-      },
-    });
+      });
+    } catch {
+      return scheduleFallback();
+    }
 
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
@@ -166,6 +241,10 @@ export function RouteMap({ track, progress, cameraMode, pitch, lineColor }: Prop
       });
     }
   }, [track, progress, cameraMode, pitch, lineColor]);
+
+  if (useFallback) {
+    return <FallbackRoute track={track} progress={progress} lineColor={lineColor} />;
+  }
 
   return <div ref={containerRef} className="h-full w-full rounded-[inherit]" aria-label="Animated route preview map" />;
 }
