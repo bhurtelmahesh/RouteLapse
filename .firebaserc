@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "routelapse-app"
+  },
+  "targets": {
+    "routelapse-app": {
+      "hosting": {
+        "routelapse": [
+          "routelapse"
+        ]
+      }
+    }
+  }
+}

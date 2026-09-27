@@ -122,7 +122,7 @@ export function Studio() {
             <Route size={20} strokeWidth={2.4} />
           </div>
           <div>
-            <div className="text-[15px] font-bold tracking-[-0.02em]">RouteLapse</div>
+            <h1 className="text-[15px] font-bold tracking-[-0.02em]">RouteLapse</h1>
             <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#77838e]">Motion from movement</div>
           </div>
         </div>

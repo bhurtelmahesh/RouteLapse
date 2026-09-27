@@ -2,6 +2,8 @@
 
 RouteLapse turns GPX activity tracks into customizable, cinematic route videos. It is being built as an installable Progressive Web App with a privacy-first local editing workflow and a cloud HD rendering pipeline.
 
+Live app: [routelapse.web.app](https://routelapse.web.app/)
+
 ## Current foundation
 
 - GPX drag-and-drop import and validation
@@ -11,7 +13,10 @@ RouteLapse turns GPX activity tracks into customizable, cinematic route videos. 
 - Video duration, camera pitch, aspect ratio, and route color controls
 - Responsive editor for desktop and mobile
 - Web app manifest and production service worker
-- Security headers, unit tests, linting, and type checking
+- Firebase Hosting with security and immutable-asset cache headers
+- Canonical metadata, Open Graph image, structured data, robots.txt, and sitemap.xml
+- Google Search Console ownership verification and sitemap submission
+- Unit tests, linting, type checking, and GitHub Actions CI
 
 No personal GPX files are stored in this repository.
 
@@ -39,7 +44,7 @@ npm run build
 
 1. Deterministic Remotion scene model and HD MP4 render worker
 2. Map themes, elevation-aware cameras, overlays, and timeline editing
-3. Firebase authentication, project storage, and hosting
+3. Firebase authentication and project storage
 4. Strava OAuth and activity import
 5. 4K/60 fps, music, photos, reusable templates, and batch rendering
 
