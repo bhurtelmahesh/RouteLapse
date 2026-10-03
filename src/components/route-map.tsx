@@ -19,6 +19,7 @@ export type { CameraMode } from "@/lib/scene";
 type Props = {
   track: Track;
   progress: number;
+  duration: number;
   cameraMode: CameraMode;
   pitch: number;
   cameraZoom: number;
@@ -36,7 +37,7 @@ function toLatLng(point: TrackPoint): [number, number] {
   return [point.latitude, point.longitude];
 }
 
-export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, mapStyle }: Props) {
+export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, mapStyle }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const progressRef = useRef(progress);
@@ -48,7 +49,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
-  const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress);
+  const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress, duration);
   const displayedPitch = pitch * (1 - reveal);
   const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
   const heatColors = useMemo(() => segmentHeatColors(track, heatMetric, heatLowColor, heatHighColor), [track, heatMetric, heatLowColor, heatHighColor]);
@@ -215,7 +216,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
       const mapSize = map.getSize();
       const revealPadding: Point = { x: Math.max(54, mapSize.x * 0.14), y: Math.max(54, mapSize.y * 0.18) } as Point;
       const fittedZoom = bounds ? map.getBoundsZoom(bounds, false, revealPadding) : cameraZoom;
-      const endReveal = endRevealProgress(progress);
+      const endReveal = endRevealProgress(progress, duration);
       const center: [number, number] = routeCenter
         ? [
             markerPosition[0] + (routeCenter.lat - markerPosition[0]) * endReveal,
@@ -224,7 +225,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
         : markerPosition;
       map.setView(center, cameraZoom + (fittedZoom - cameraZoom) * endReveal, { animate: false });
     }
-  }, [track, progress, cameraMode, cameraZoom, lineColor, routeStyle, heatColors, heatHighColor, mapReady, isInteracting]);
+  }, [track, progress, duration, cameraMode, cameraZoom, lineColor, routeStyle, heatColors, heatHighColor, mapReady, isInteracting]);
 
   useEffect(() => {
     const map = mapRef.current;

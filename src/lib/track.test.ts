@@ -112,9 +112,9 @@ describe("track utilities", () => {
   });
 
   it("smoothly reveals the full route at the end", () => {
-    expect(endRevealProgress(0.82)).toBe(0);
-    expect(endRevealProgress(0.91)).toBeCloseTo(0.5, 5);
-    expect(endRevealProgress(1)).toBe(1);
+    expect(endRevealProgress(0.72, 18)).toBe(0);
+    expect(endRevealProgress(0.81, 18)).toBeCloseTo(0.5, 5);
+    expect(endRevealProgress(0.9, 18)).toBe(1);
   });
 
   it("includes a centered transparent-image preset", () => {

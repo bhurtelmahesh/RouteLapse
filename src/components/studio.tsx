@@ -423,7 +423,7 @@ export function Studio() {
               className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
-              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} routeStyle={routeStyle} heatMetric={heatMetric} heatLowColor={heatLowColor} heatHighColor={heatHighColor} mapStyle={mapStyle} />
+              <RouteMap track={track} progress={progress} duration={duration} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} routeStyle={routeStyle} heatMetric={heatMetric} heatLowColor={heatLowColor} heatHighColor={heatHighColor} mapStyle={mapStyle} />
               {routeStyle === "heat" && (
                 <div data-testid="heat-legend" className="pointer-events-none absolute bottom-14 left-1/2 z-[500] w-32 -translate-x-1/2 rounded-lg border border-white/12 bg-black/55 px-2.5 py-2 shadow-lg backdrop-blur-md sm:bottom-16 sm:w-40">
                   <div className="mb-1.5 flex justify-between text-[8px] font-bold uppercase tracking-[0.12em] text-white/65"><span>{heatLegendLabels(heatMetric).low}</span><span>{heatLegendLabels(heatMetric).high}</span></div>

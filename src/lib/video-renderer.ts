@@ -56,7 +56,7 @@ function cameraAt(track: Track, settings: SceneSettings, progress: number, width
   if (settings.cameraMode === "overview") return settings.overviewAutoFit ? fittedOverviewCamera(track, width, height, maximumZoom) : overviewCamera(track, zoom);
   const point = sampleTrackAtProgress(track, progress).point;
   const overview = fittedOverviewCamera(track, width, height, maximumZoom);
-  const reveal = endRevealProgress(progress);
+  const reveal = endRevealProgress(progress, settings.duration);
   const displayZoom = zoom + (overview.zoom - zoom) * reveal;
   const centerPoint = {
     latitude: point.latitude + ((track.bounds.minLatitude + track.bounds.maxLatitude) / 2 - point.latitude) * reveal,

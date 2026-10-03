@@ -74,15 +74,21 @@ export const aspectRatio: Record<Aspect, string> = {
   "1:1": "1 / 1",
 };
 
-export function endRevealProgress(progress: number) {
-  const normalized = Math.max(0, Math.min(1, (progress - 0.82) / 0.18));
+export function brandOutroStart(duration: number) {
+  const safeDuration = Math.max(1, duration);
+  const outroDuration = Math.min(1.8, Math.max(0.8, safeDuration * 0.12));
+  return 1 - outroDuration / safeDuration;
+}
+
+export function endRevealProgress(progress: number, duration = 18) {
+  const revealEnd = brandOutroStart(duration);
+  const revealStart = Math.max(0, revealEnd - 0.18);
+  const normalized = Math.max(0, Math.min(1, (progress - revealStart) / (revealEnd - revealStart)));
   return normalized * normalized * (3 - 2 * normalized);
 }
 
 export function brandOutroProgress(progress: number, duration: number) {
-  const safeDuration = Math.max(1, duration);
-  const outroDuration = Math.min(1.8, Math.max(0.8, safeDuration * 0.12));
-  const start = 1 - outroDuration / safeDuration;
+  const start = brandOutroStart(duration);
   const normalized = Math.max(0, Math.min(1, (progress - start) / (1 - start)));
   return normalized * normalized * (3 - 2 * normalized);
 }
