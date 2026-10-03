@@ -121,6 +121,12 @@ export function sampleTrackAtProgress(track: Track, progress: number): TrackSamp
   };
 }
 
+export function headingAtProgress(track: Track, progress: number) {
+  const before = sampleTrackAtProgress(track, Math.max(0, progress - 0.008)).point;
+  const after = sampleTrackAtProgress(track, Math.min(1, progress + 0.008)).point;
+  return bearingBetween(before, after);
+}
+
 export function buildTrack(name: string, sport: string, points: TrackPoint[]): Track {
   if (points.length < 2) {
     throw new Error("This GPX file does not contain enough track points.");

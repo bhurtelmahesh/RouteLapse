@@ -8,7 +8,7 @@ import type {
   TileLayer,
 } from "leaflet";
 import type { Track, TrackPoint } from "@/lib/track";
-import { sampleTrackAtProgress } from "@/lib/track";
+import { headingAtProgress, sampleTrackAtProgress } from "@/lib/track";
 import { mapTileLayers, type MapStyle } from "@/lib/map-styles";
 import type { CameraMode } from "@/lib/scene";
 
@@ -19,6 +19,9 @@ type Props = {
   progress: number;
   cameraMode: CameraMode;
   pitch: number;
+  cameraZoom: number;
+  forwardUp: boolean;
+  overviewAutoFit: boolean;
   lineColor: string;
   mapStyle: MapStyle;
 };
@@ -27,7 +30,7 @@ function toLatLng(point: TrackPoint): [number, number] {
   return [point.latitude, point.longitude];
 }
 
-export function RouteMap({ track, progress, cameraMode, pitch, lineColor, mapStyle }: Props) {
+export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, mapStyle }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const tileLayersRef = useRef<TileLayer[]>([]);
@@ -35,6 +38,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, lineColor, mapSty
   const activeRouteRef = useRef<LeafletPolyline | null>(null);
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) : 0;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -122,9 +126,10 @@ export function RouteMap({ track, progress, cameraMode, pitch, lineColor, mapSty
 
     fullRoute.setLatLngs(track.points.map(toLatLng));
     if (cameraMode === "overview") {
-      map.fitBounds(fullRoute.getBounds(), { animate: true, duration: 0.65, padding: [54, 54] });
+      if (overviewAutoFit) map.fitBounds(fullRoute.getBounds(), { animate: false, padding: [54, 54] });
+      else map.setView(fullRoute.getBounds().getCenter(), cameraZoom, { animate: false });
     }
-  }, [track, cameraMode, mapReady]);
+  }, [track, cameraMode, cameraZoom, overviewAutoFit, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -140,16 +145,26 @@ export function RouteMap({ track, progress, cameraMode, pitch, lineColor, mapSty
     marker.setStyle({ color: lineColor });
 
     if (cameraMode !== "overview") {
-      const targetZoom = cameraMode === "follow" ? 16 : 14.4 + (pitch / 90) * 1.1;
-      map.setView(markerPosition, targetZoom, { animate: false });
+      map.setView(markerPosition, cameraZoom, { animate: false });
     }
-  }, [track, progress, cameraMode, pitch, lineColor, mapReady]);
+  }, [track, progress, cameraMode, cameraZoom, lineColor, mapReady]);
 
   return (
     <div
-      ref={containerRef}
-      className="h-full w-full rounded-[inherit]"
+      className="h-full w-full overflow-hidden rounded-[inherit] bg-[#080b0f] [perspective:1200px]"
       aria-label="Animated route preview map"
-    />
+    >
+      <div
+        ref={containerRef}
+        className="h-full w-full rounded-[inherit] transition-transform duration-500 ease-out"
+        style={{
+          transform:
+            cameraMode === "overview"
+              ? "none"
+              : `rotateX(${Math.round(pitch * 0.68)}deg) rotateZ(${-Math.round(heading)}deg) scale(${(1 + pitch / 260).toFixed(3)})`,
+          transformOrigin: "50% 58%",
+        }}
+      />
+    </div>
   );
 }

@@ -1,9 +1,10 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
-import { renderResolution, type SceneSettings } from "./scene";
-import { formatDistance, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
+import { activityMetrics } from "./activity-metrics";
+import { renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
+import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
 type WorldPoint = { x: number; y: number };
-type Camera = { center: WorldPoint; zoom: number };
+type Camera = { center: WorldPoint; zoom: number; tilted: boolean; heading: number };
 
 export type RenderProgress = {
   phase: "preparing" | "recording" | "complete";
@@ -28,24 +29,7 @@ function project(point: TrackPoint, zoom: number): WorldPoint {
   };
 }
 
-function overviewCamera(track: Track, width: number, height: number, maximumZoom: number): Camera {
-  const northWest = project(
-    { latitude: track.bounds.maxLatitude, longitude: track.bounds.minLongitude },
-    0,
-  );
-  const southEast = project(
-    { latitude: track.bounds.minLatitude, longitude: track.bounds.maxLongitude },
-    0,
-  );
-  const spanX = Math.max(0.000001, Math.abs(southEast.x - northWest.x));
-  const spanY = Math.max(0.000001, Math.abs(southEast.y - northWest.y));
-  const zoom = Math.max(
-    1,
-    Math.min(
-      maximumZoom,
-      Math.floor(Math.log2(Math.min((width * 0.72) / spanX, (height * 0.64) / spanY))),
-    ),
-  );
+function overviewCamera(track: Track, zoom: number): Camera {
   const center = project(
     {
       latitude: (track.bounds.minLatitude + track.bounds.maxLatitude) / 2,
@@ -53,24 +37,34 @@ function overviewCamera(track: Track, width: number, height: number, maximumZoom
     },
     zoom,
   );
-  return { center, zoom };
+  return { center, zoom, tilted: false, heading: 0 };
+}
+
+function fittedOverviewCamera(track: Track, width: number, height: number, maximumZoom: number): Camera {
+  const northWest = project({ latitude: track.bounds.maxLatitude, longitude: track.bounds.minLongitude }, 0);
+  const southEast = project({ latitude: track.bounds.minLatitude, longitude: track.bounds.maxLongitude }, 0);
+  const spanX = Math.max(0.000001, Math.abs(southEast.x - northWest.x));
+  const spanY = Math.max(0.000001, Math.abs(southEast.y - northWest.y));
+  const zoom = Math.max(1, Math.min(maximumZoom, Math.floor(Math.log2(Math.min((width * 0.72) / spanX, (height * 0.64) / spanY)))));
+  return overviewCamera(track, zoom);
 }
 
 function cameraAt(track: Track, settings: SceneSettings, progress: number, width: number, height: number) {
   const maximumZoom = Math.min(...mapTileLayers[settings.mapStyle].map((layer) => layer.maxZoom));
-  if (settings.cameraMode === "overview") return overviewCamera(track, width, height, maximumZoom);
+  const zoom = Math.min(maximumZoom, Math.max(10, settings.cameraZoom));
+  if (settings.cameraMode === "overview") return settings.overviewAutoFit ? fittedOverviewCamera(track, width, height, maximumZoom) : overviewCamera(track, zoom);
   const point = sampleTrackAtProgress(track, progress).point;
-  const zoom = Math.min(maximumZoom, settings.cameraMode === "follow" ? 16 : 15);
-  return { center: project(point, zoom), zoom };
+  return { center: project(point, zoom), zoom, tilted: settings.pitch > 0, heading: settings.forwardUp ? headingAtProgress(track, progress) : 0 };
 }
 
 function visibleTiles(camera: Camera, width: number, height: number) {
   const left = camera.center.x - width / 2;
   const top = camera.center.y - height / 2;
-  const firstX = Math.floor(left / TILE_SIZE);
-  const lastX = Math.floor((left + width) / TILE_SIZE);
-  const firstY = Math.max(0, Math.floor(top / TILE_SIZE));
-  const lastY = Math.min(2 ** camera.zoom - 1, Math.floor((top + height) / TILE_SIZE));
+  const margin = camera.tilted || camera.heading ? Math.hypot(width, height) * 0.32 : 0;
+  const firstX = Math.floor((left - margin) / TILE_SIZE);
+  const lastX = Math.floor((left + width + margin) / TILE_SIZE);
+  const firstY = Math.max(0, Math.floor((top - margin) / TILE_SIZE));
+  const lastY = Math.min(2 ** camera.zoom - 1, Math.floor((top + height + margin) / TILE_SIZE));
   const tiles: Array<{ drawX: number; drawY: number; x: number; y: number }> = [];
   const worldTiles = 2 ** camera.zoom;
   for (let y = firstY; y <= lastY; y += 1) {
@@ -192,6 +186,7 @@ function drawFrame(
   track: Track,
   settings: SceneSettings,
   images: Map<string, HTMLImageElement>,
+  imageOverlay: HTMLImageElement | null,
   progress: number,
   width: number,
   height: number,
@@ -200,6 +195,13 @@ function drawFrame(
   const sample = sampleTrackAtProgress(track, progress);
   context.fillStyle = "#11161c";
   context.fillRect(0, 0, width, height);
+  const tilt = settings.cameraMode === "overview" ? 0 : settings.pitch;
+  const verticalScale = Math.cos((tilt * 0.72 * Math.PI) / 180);
+  context.save();
+  context.translate(width / 2, height / 2 + height * (1 - verticalScale) * 0.08);
+  context.scale(1, verticalScale);
+  context.rotate((-camera.heading * Math.PI) / 180);
+  context.translate(-width / 2, -height / 2);
   drawTiles(context, mapTileLayers[settings.mapStyle], images, camera, width, height);
 
   const scale = Math.max(1, Math.min(width, height) / 720);
@@ -213,6 +215,7 @@ function drawFrame(
   context.lineWidth = 5 * scale;
   context.strokeStyle = settings.lineColor;
   context.stroke();
+  context.restore();
 
   const topGradient = context.createLinearGradient(0, 0, 0, height * 0.3);
   topGradient.addColorStop(0, "rgba(0,0,0,.82)");
@@ -233,11 +236,43 @@ function drawFrame(
   context.font = `700 ${31 * scale}px Arial`;
   context.fillText(track.name.slice(0, 52), padding, padding + 40 * scale);
   context.textAlign = "right";
-  context.font = `700 ${24 * scale}px monospace`;
-  context.fillText(formatDistance(track.distanceMeters * progress), width - padding, padding + 12 * scale);
   context.font = `600 ${12 * scale}px Arial`;
   context.fillStyle = "rgba(255,255,255,.68)";
   context.fillText(`${Math.round(progress * 100)}% COMPLETE`, width - padding, height - padding);
+
+  const metrics = activityMetrics(track, progress, settings.metricFields);
+  if (metrics.length) {
+    const boxWidth = Math.min(width * 0.42, 430 * scale);
+    const rows = Math.ceil(metrics.length / 2);
+    const boxHeight = (34 + rows * 58) * scale;
+    const box = overlayCoordinates(settings.metricPosition, boxWidth, boxHeight, width, height, padding);
+    context.fillStyle = "rgba(0,0,0,.62)";
+    roundedRect(context, box.x, box.y, boxWidth, boxHeight, 16 * scale);
+    context.fill();
+    metrics.forEach((metric, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const x = box.x + 20 * scale + column * (boxWidth / 2);
+      const y = box.y + 27 * scale + row * 58 * scale;
+      context.textAlign = "left";
+      context.fillStyle = "rgba(255,255,255,.6)";
+      context.font = `700 ${10 * scale}px Arial`;
+      context.fillText(metric.label.toUpperCase(), x, y);
+      context.fillStyle = "#ffffff";
+      context.font = `700 ${19 * scale}px monospace`;
+      context.fillText(metric.value, x, y + 23 * scale);
+    });
+  }
+
+  if (imageOverlay) {
+    const maximumWidth = width * 0.42;
+    const maximumHeight = height * 0.28;
+    const imageScale = Math.min(maximumWidth / imageOverlay.naturalWidth, maximumHeight / imageOverlay.naturalHeight, 1);
+    const imageWidth = imageOverlay.naturalWidth * imageScale;
+    const imageHeight = imageOverlay.naturalHeight * imageScale;
+    const imageBox = overlayCoordinates(settings.imagePosition, imageWidth, imageHeight, width, height, padding);
+    context.drawImage(imageOverlay, imageBox.x, imageBox.y, imageWidth, imageHeight);
+  }
 
   const attribution = Array.from(new Set(mapTileLayers[settings.mapStyle].map((layer) => layer.attribution))).join(" · ");
   context.textAlign = "left";
@@ -245,6 +280,30 @@ function drawFrame(
   context.fillStyle = "rgba(255,255,255,.72)";
   context.fillText(attribution.slice(0, 180), padding, height - padding);
   context.textAlign = "left";
+}
+
+function overlayCoordinates(
+  position: OverlayPosition,
+  contentWidth: number,
+  contentHeight: number,
+  width: number,
+  height: number,
+  padding: number,
+) {
+  const right = width - padding - contentWidth;
+  const bottom = height - padding * 1.75 - contentHeight;
+  const center = (height - contentHeight) / 2;
+  if (position === "top-left") return { x: padding, y: padding * 2.2 };
+  if (position === "top-right") return { x: right, y: padding * 2.2 };
+  if (position === "center-left") return { x: padding, y: center };
+  if (position === "center-right") return { x: right, y: center };
+  if (position === "bottom-right") return { x: right, y: bottom };
+  return { x: padding, y: bottom };
+}
+
+function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  context.beginPath();
+  context.roundRect(x, y, width, height, radius);
 }
 
 function videoFormat() {
@@ -277,8 +336,9 @@ export async function renderRouteVideo(
 
   onProgress({ phase: "preparing", progress: 0 });
   const images = await preloadTiles(track, settings, width, height, signal, onProgress);
+  const imageOverlay = settings.imageOverlaySrc ? await loadImage(settings.imageOverlaySrc, signal) : null;
   if (signal.aborted) throw new DOMException("Rendering cancelled", "AbortError");
-  drawFrame(context, track, settings, images, 0, width, height);
+  drawFrame(context, track, settings, images, imageOverlay, 0, width, height);
 
   const stream = canvas.captureStream(FRAME_RATE);
   const recorder = new MediaRecorder(stream, {
@@ -304,7 +364,7 @@ export async function renderRouteVideo(
           return;
         }
         const progress = Math.min(1, (now - startedAt) / (settings.duration * 1_000));
-        drawFrame(context, track, settings, images, progress, width, height);
+        drawFrame(context, track, settings, images, imageOverlay, progress, width, height);
         onProgress({ phase: "recording", progress });
         if (progress >= 1) resolve();
         else window.requestAnimationFrame(render);

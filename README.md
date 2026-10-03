@@ -6,16 +6,19 @@ Live app: [routelapse.web.app](https://routelapse.web.app/)
 
 ## Current foundation
 
-- GPX drag-and-drop import and validation
-- Multi-file and Adidas Running export ZIP import
+- GPX and TCX drag-and-drop import and validation
+- Multi-file and activity-export ZIP import
 - Searchable activity library with date and sport filtering
 - Locally calculated distance, duration, elevation gain, and track-point metrics
 - Synchronized elevation and pace profiles
 - Smooth distance-interpolated Leaflet route preview without a WebGL requirement
 - Switchable Street, Satellite, Hybrid, and Dark preview styles
-- Overview, follow, and cinematic camera modes
-- Video duration, camera pitch, aspect ratio, and route color controls
+- Overview, follow, and cinematic camera modes with visible camera pitch
+- Video duration, camera pitch, camera zoom, aspect ratio, and route color controls
+- Selectable distance, time, pace, and elevation overlays with six positions
+- Transparent Strava-style PNG/WebP overlays with independent positioning
 - Local Full HD MP4 rendering in Chrome with WebM fallback
+- Verified 1080p landscape, 1080×1920 portrait, and 1080p square output
 - Local project-setting persistence
 - Responsive editor for desktop and mobile
 - Web app manifest and production service worker
@@ -54,4 +57,4 @@ See [the revised product plan](docs/PRODUCT_PLAN.md) for the ingestion, Strava O
 
 ## Map attribution
 
-The preview and local renderer use OpenStreetMap, CARTO, and Esri tile services and keep each provider's attribution visible. Commercial/public rendering terms must be reviewed before offering paid or server-side exports.
+The preview and local renderer use OpenStreetMap, CARTO, and Esri tile services and keep each provider's attribution visible. Dark uses CARTO when `NEXT_PUBLIC_CARTO_API_KEY` is configured and otherwise falls back to Esri Dark Gray. Commercial/public rendering terms must be reviewed before offering paid or server-side exports.

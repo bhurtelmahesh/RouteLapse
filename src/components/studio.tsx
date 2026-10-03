@@ -6,6 +6,7 @@ import {
   Download,
   Film,
   Gauge,
+  ImagePlus,
   Layers3,
   LockKeyhole,
   MapPinned,
@@ -18,17 +19,18 @@ import {
   Sparkles,
   Upload,
   WifiOff,
+  X,
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
-import { aspectRatio, type Aspect, type CameraMode } from "@/lib/scene";
+import { activityMetrics } from "@/lib/activity-metrics";
+import { aspectRatio, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type MetricKey, type OverlayPosition } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
 import { PwaStatus } from "./pwa-status";
-import { StravaImport } from "./strava-import";
 import { RouteMap } from "./route-map";
 
 function Metric({ icon: Icon, label, value }: { icon: typeof Gauge; label: string; value: string }) {
@@ -42,6 +44,15 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Gauge; label: strin
   );
 }
 
+const overlayPositionClass: Record<OverlayPosition, string> = {
+  "top-left": "left-4 top-24 sm:left-6 sm:top-28",
+  "top-right": "right-4 top-24 sm:right-6 sm:top-28",
+  "center-left": "left-4 top-1/2 -translate-y-1/2 sm:left-6",
+  "center-right": "right-4 top-1/2 -translate-y-1/2 sm:right-6",
+  "bottom-left": "bottom-14 left-4 sm:bottom-16 sm:left-6",
+  "bottom-right": "bottom-14 right-4 sm:bottom-16 sm:right-6",
+};
+
 export function Studio() {
   const [tracks, setTracks] = useState<Track[]>(() => [demoTrack()]);
   const [selectedTrack, setSelectedTrack] = useState(0);
@@ -50,9 +61,16 @@ export function Studio() {
   const [duration, setDuration] = useState(18);
   const [cameraMode, setCameraMode] = useState<CameraMode>("cinematic");
   const [pitch, setPitch] = useState(48);
+  const [cameraZoom, setCameraZoom] = useState(16);
+  const [forwardUp, setForwardUp] = useState(false);
+  const [overviewAutoFit, setOverviewAutoFit] = useState(false);
   const [lineColor, setLineColor] = useState("#d8ff52");
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
+  const [metricFields, setMetricFields] = useState<MetricKey[]>(["distance", "elapsed", "pace"]);
+  const [metricPosition, setMetricPosition] = useState<OverlayPosition>("bottom-left");
+  const [imagePosition, setImagePosition] = useState<OverlayPosition>("bottom-right");
+  const [overlayImage, setOverlayImage] = useState<{ name: string; src: string } | null>(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [sportFilter, setSportFilter] = useState("all");
@@ -61,6 +79,7 @@ export function Studio() {
   const [renderedVideo, setRenderedVideo] = useState<{ url: string; name: string; type: string } | null>(null);
   const [renderError, setRenderError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayInputRef = useRef<HTMLInputElement>(null);
   const progressRef = useRef(progress);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const renderAbortRef = useRef<AbortController | null>(null);
@@ -78,14 +97,27 @@ export function Studio() {
       setDuration(settings.duration);
       setCameraMode(settings.cameraMode);
       setPitch(settings.pitch);
+      setCameraZoom(settings.cameraZoom ?? 16);
+      setForwardUp(settings.forwardUp ?? false);
+      setOverviewAutoFit(settings.overviewAutoFit ?? false);
       setLineColor(settings.lineColor);
       setAspect(settings.aspect);
       setMapStyle(settings.mapStyle);
+      setMetricFields(settings.metricFields ?? ["distance", "elapsed", "pace"]);
+      setMetricPosition(settings.metricPosition ?? "bottom-left");
+      setImagePosition(settings.imagePosition ?? "bottom-right");
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => () => renderAbortRef.current?.abort(), []);
+
+  useEffect(() => {
+    const src = overlayImage?.src;
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+  }, [overlayImage]);
 
   useEffect(() => {
     const url = renderedVideo?.url;
@@ -128,7 +160,7 @@ export function Studio() {
       progressRef.current = 0;
       setPlaying(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The GPX file could not be opened.");
+      setError(caught instanceof Error ? caught.message : "The activity file could not be opened.");
     }
   }
 
@@ -156,9 +188,21 @@ export function Studio() {
   }
 
   function saveProject() {
-    saveProjectSettings({ duration, cameraMode, pitch, lineColor, aspect, mapStyle });
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricPosition, imagePosition });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2_000);
+  }
+
+  function handleOverlayImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!(["image/png", "image/webp"] as string[]).includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setError("Choose a transparent PNG or WebP image smaller than 10 MB.");
+      return;
+    }
+    setError("");
+    setOverlayImage({ name: file.name, src: URL.createObjectURL(file) });
   }
 
   async function renderVideo() {
@@ -177,7 +221,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, lineColor, aspect, mapStyle },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -228,11 +272,10 @@ export function Studio() {
         <aside className="library-panel border-r border-white/8 bg-[#0a0e13] p-4">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-[#83909c]">Activity</h2>
-            <span className="rounded-md bg-[#d8ff52]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#d8ff52]">GPX ready</span>
+            <span className="rounded-md bg-[#d8ff52]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#d8ff52]">GPX/TCX ready</span>
           </div>
 
-          <input ref={inputRef} type="file" multiple accept=".gpx,.zip,application/gpx+xml,application/zip,application/xml,text/xml" onChange={handleFile} className="hidden" />
-          <StravaImport onImport={(importedTrack) => { setTracks((current) => [importedTrack, ...current]); setSelectedTrack(0); resetPlayback(); }} />
+          <input ref={inputRef} type="file" multiple accept=".gpx,.tcx,.zip,application/gpx+xml,application/vnd.garmin.tcx+xml,application/zip,application/xml,text/xml" onChange={handleFile} className="hidden" />
           <div
             role="button"
             tabIndex={0}
@@ -248,7 +291,7 @@ export function Studio() {
               <Upload size={18} />
             </div>
             <p className="text-sm font-semibold">Drop activities here</p>
-            <p className="mt-1 text-[11px] leading-4 text-[#74808b]">GPX files or an Adidas export ZIP</p>
+            <p className="mt-1 text-[11px] leading-4 text-[#74808b]">GPX or TCX files, or an activity export ZIP</p>
           </div>
 
           {error && <p className="mb-3 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-[11px] leading-4 text-red-200">{error}</p>}
@@ -315,15 +358,28 @@ export function Studio() {
               className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
-              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} lineColor={lineColor} mapStyle={mapStyle} />
+              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} mapStyle={mapStyle} />
+              {!!metricFields.length && (
+                <div className={`pointer-events-none absolute z-[500] rounded-xl border border-white/15 bg-black/55 p-2.5 shadow-xl backdrop-blur-md ${overlayPositionClass[metricPosition]}`}>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {activityMetrics(track, progress, metricFields).map((metric) => (
+                      <div key={metric.key}>
+                        <div className="text-[7px] font-semibold uppercase tracking-[0.16em] text-white/55">{metric.label}</div>
+                        <div className="mt-0.5 whitespace-nowrap font-mono text-[10px] font-bold text-white sm:text-xs">{metric.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {overlayImage && (
+                // User-selected object URLs are local previews and cannot use Next's image optimizer.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={overlayImage.src} alt="Imported transparent metrics overlay" className={`pointer-events-none absolute z-[510] max-h-[30%] max-w-[46%] object-contain drop-shadow-xl ${overlayPositionClass[imagePosition]}`} />
+              )}
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/65 to-transparent p-4 sm:p-6">
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#d8ff52]">RouteLapse original</div>
                   <div className="mt-1 max-w-[300px] truncate text-lg font-semibold tracking-tight sm:text-2xl">{track.name}</div>
-                </div>
-                <div className="rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-right backdrop-blur-md">
-                  <div className="font-mono text-sm font-semibold">{formatDistance(track.distanceMeters * progress)}</div>
-                  <div className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/55">distance</div>
                 </div>
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 sm:p-6 sm:pt-16">
@@ -400,6 +456,17 @@ export function Studio() {
               <input id="pitch" className="range-track w-full" type="range" min="0" max="60" step="1" value={pitch} onChange={(event) => setPitch(Number(event.target.value))} disabled={cameraMode === "overview"} />
             </div>
 
+            <div className="mt-5 sm:mt-0 lg:mt-5">
+              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]"><label htmlFor="camera-zoom">Camera zoom</label><span className="font-mono text-[#d8ff52]">Level {cameraZoom.toFixed(1)}</span></div>
+              <input id="camera-zoom" aria-label="Camera zoom" className="range-track w-full" type="range" min="12" max="18" step="0.5" value={cameraZoom} onChange={(event) => setCameraZoom(Number(event.target.value))} />
+              <div className="mt-2 text-[10px] text-[#697580]">Sets detail in every mode; Follow and Cinematic also track the moving point.</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button onClick={() => setOverviewAutoFit((value) => !value)} aria-pressed={overviewAutoFit} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${overviewAutoFit ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>Fit full route</button>
+                <button onClick={() => setForwardUp((value) => !value)} aria-pressed={forwardUp} disabled={cameraMode === "overview"} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition disabled:opacity-35 ${forwardUp ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>Forward-up map</button>
+              </div>
+              <div className="mt-2 text-[9px] leading-4 text-[#616d77]">Forward-up rotates the map beneath a fixed video frame; overlays stay level.</div>
+            </div>
+
             <div className="mt-5 border-t border-white/8 pt-5 sm:mt-0 sm:border-0 sm:pt-0 lg:mt-5 lg:border-t lg:pt-5">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Canvas</label>
               <div className="grid grid-cols-3 gap-2">
@@ -428,6 +495,39 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Video metrics</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.keys(metricLabels) as MetricKey[]).map((metric) => {
+                  const selected = metricFields.includes(metric);
+                  return (
+                    <button key={metric} onClick={() => setMetricFields((current) => selected ? current.filter((value) => value !== metric) : [...current, metric])} aria-pressed={selected} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${selected ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f] hover:border-white/16"}`}>
+                      {metricLabels[metric]}
+                    </button>
+                  );
+                })}
+              </div>
+              <select value={metricPosition} onChange={(event) => setMetricPosition(event.target.value as OverlayPosition)} aria-label="Metric position" className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-[10px] text-white">
+                {(Object.keys(overlayPositionLabels) as OverlayPosition[]).map((position) => <option key={position} value={position}>{overlayPositionLabels[position]}</option>)}
+              </select>
+            </div>
+
+            <div className="mt-5 sm:mt-0 lg:mt-5">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Transparent overlay</label>
+              <input ref={overlayInputRef} type="file" accept="image/png,image/webp,.png,.webp" onChange={handleOverlayImage} className="hidden" />
+              {overlayImage ? (
+                <div className="rounded-lg border border-white/9 bg-white/[0.025] p-2">
+                  <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-[10px] text-white">{overlayImage.name}</span><button onClick={() => setOverlayImage(null)} aria-label="Remove transparent overlay" className="text-[#7c8790] hover:text-white"><X size={13} /></button></div>
+                  <select value={imagePosition} onChange={(event) => setImagePosition(event.target.value as OverlayPosition)} aria-label="Image overlay position" className="mt-2 w-full rounded-md border border-white/10 bg-[#10151c] px-2 py-1.5 text-[10px] text-white">
+                    {(Object.keys(overlayPositionLabels) as OverlayPosition[]).map((position) => <option key={position} value={position}>{overlayPositionLabels[position]}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <button onClick={() => overlayInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/14 px-3 py-2.5 text-[10px] font-semibold text-[#8a959e] transition hover:border-[#d8ff52]/40 hover:text-white"><ImagePlus size={14} /> Add Strava PNG/WebP</button>
+              )}
+              <p className="mt-2 text-[9px] leading-4 text-[#616d77]">Use a transparent screenshot or exported metrics card.</p>
+            </div>
+
+            <div className="mt-5 sm:mt-0 lg:mt-5">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Route color</label>
               <div className="flex gap-2">
                 {["#d8ff52", "#ff6b45", "#6bdcff", "#f7f7f2"].map((color) => (
@@ -437,8 +537,8 @@ export function Studio() {
             </div>
 
             <div className="mt-5 rounded-xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-3 sm:mt-0 lg:mt-5">
-              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#d8ff52]"><Sparkles size={12} /> Next milestone</div>
-              <p className="text-[10px] leading-4 text-[#89958c]">Frame rendering and downloadable MP4 output.</p>
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#d8ff52]"><Sparkles size={12} /> Local HD renderer</div>
+              <p className="text-[10px] leading-4 text-[#89958c]">Camera, overlays, and Full HD output stay in this browser.</p>
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">

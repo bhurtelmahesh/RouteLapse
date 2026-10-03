@@ -27,6 +27,7 @@ RouteLapse turns a recorded outdoor activity into a smooth, cinematic, share-rea
 - [x] Activity library with dates, sport filtering, and search
 - [x] Elevation and pace timeline
 - [x] Local project-setting persistence
+- [x] GPX/TCX and mixed activity-archive import
 
 ### M2 — Strava connection
 
@@ -50,6 +51,9 @@ Strava requires a server-side client secret for the authorization-code exchange.
 - [x] Local progress reporting and cancellation
 - [ ] Cloud FFmpeg encoding for 1080p/4K render jobs
 - [x] Downloadable local output
+- [x] Landscape, portrait, and square Full HD output
+- [x] Selectable metrics and positioned transparent image overlays
+- [x] Fixed-frame pitched camera presentation with adjustable zoom in every mode
 - [ ] Short-lived Cloud Storage URLs for cloud renders
 - [ ] Visual regression tests comparing preview and rendered frames
 

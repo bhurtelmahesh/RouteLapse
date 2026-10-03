@@ -13,6 +13,11 @@ const imageryAttribution =
 const referenceAttribution =
   "Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS User Community";
 
+// CARTO requires a key for unwatermarked tiles. When none is configured, the
+// Dark style uses Esri's attributed dark-gray basemap instead.
+const cartoApiKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+const cartoKeyParam = cartoApiKey ? `?key=${cartoApiKey}` : "";
+
 export const mapTileLayers: Record<MapStyle, MapTileLayer[]> = {
   street: [
     {
@@ -23,15 +28,30 @@ export const mapTileLayers: Record<MapStyle, MapTileLayer[]> = {
       subdomains: "abc",
     },
   ],
-  dark: [
-    {
-      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      attribution: "© OpenStreetMap contributors © CARTO",
-      className: "basemap-tiles basemap-dark",
-      maxZoom: 20,
-      subdomains: "abcd",
-    },
-  ],
+  dark: cartoApiKey
+    ? [
+        {
+          url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png${cartoKeyParam}`,
+          attribution: "© OpenStreetMap contributors © CARTO",
+          className: "basemap-tiles basemap-dark",
+          maxZoom: 20,
+          subdomains: "abcd",
+        },
+      ]
+    : [
+        {
+          url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+          attribution: referenceAttribution,
+          className: "basemap-tiles basemap-dark",
+          maxZoom: 16,
+        },
+        {
+          url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+          attribution: referenceAttribution,
+          className: "basemap-reference",
+          maxZoom: 16,
+        },
+      ],
   satellite: [
     {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",

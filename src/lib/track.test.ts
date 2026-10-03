@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { parseGpxArchive } from "./activity-import";
+import { activityMetrics } from "./activity-metrics";
+import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
+import { parseTcx } from "./tcx";
 import { renderResolution } from "./scene";
-import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, sampleTrackAtProgress } from "./track";
+import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
   it("calculates a geographic distance", () => {
@@ -35,10 +37,26 @@ describe("track utilities", () => {
   it("imports GPX activities from an Adidas-style archive", () => {
     const gpx = `<?xml version="1.0"?><gpx><trk><name>Archive Run</name><trkseg><trkpt lat="35" lon="139"/><trkpt lat="35.001" lon="139.001"/></trkseg></trk></gpx>`;
     const archive = zipSync({ "Sport-sessions/GPS-data/run.gpx": strToU8(gpx) });
-    const tracks = parseGpxArchive(archive);
+    const tracks = parseActivityArchive(archive);
 
     expect(tracks).toHaveLength(1);
     expect(tracks[0].name).toBe("Archive Run");
+  });
+
+  it("parses a TCX track", () => {
+    const track = parseTcx(`<?xml version="1.0"?><TrainingCenterDatabase><Activities><Activity Sport="Biking"><Id>Evening Ride</Id><Lap><Track><Trackpoint><Time>2026-01-01T00:00:00Z</Time><Position><LatitudeDegrees>35</LatitudeDegrees><LongitudeDegrees>139</LongitudeDegrees></Position><AltitudeMeters>10</AltitudeMeters></Trackpoint><Trackpoint><Time>2026-01-01T00:01:00Z</Time><Position><LatitudeDegrees>35.001</LatitudeDegrees><LongitudeDegrees>139.001</LongitudeDegrees></Position><AltitudeMeters>12</AltitudeMeters></Trackpoint></Track></Lap></Activity></Activities></TrainingCenterDatabase>`);
+    expect(track.name).toBe("Evening Ride");
+    expect(track.sport).toBe("biking");
+    expect(track.points).toHaveLength(2);
+  });
+
+  it("imports mixed GPX and TCX activities from an archive", () => {
+    const gpx = `<?xml version="1.0"?><gpx><trk><name>Archive Run</name><trkseg><trkpt lat="35" lon="139"/><trkpt lat="35.001" lon="139.001"/></trkseg></trk></gpx>`;
+    const tcx = `<?xml version="1.0"?><TrainingCenterDatabase><Activities><Activity Sport="Running"><Id>Archive Walk</Id><Lap><Track><Trackpoint><Position><LatitudeDegrees>1</LatitudeDegrees><LongitudeDegrees>1</LongitudeDegrees></Position></Trackpoint><Trackpoint><Position><LatitudeDegrees>1.001</LatitudeDegrees><LongitudeDegrees>1.001</LongitudeDegrees></Position></Trackpoint></Track></Lap></Activity></Activities></TrainingCenterDatabase>`;
+    const archive = zipSync({ "run.gpx": strToU8(gpx), "walk.tcx": strToU8(tcx) });
+    const tracks = parseActivityArchive(archive);
+
+    expect(tracks).toHaveLength(2);
   });
 
   it("ships with a non-private demo route", () => {
@@ -71,5 +89,19 @@ describe("track utilities", () => {
     expect(renderResolution("16:9")).toEqual({ width: 1920, height: 1080 });
     expect(renderResolution("9:16")).toEqual({ width: 1080, height: 1920 });
     expect(renderResolution("1:1")).toEqual({ width: 1080, height: 1080 });
+  });
+
+  it("builds only the video metrics selected by the user", () => {
+    const metrics = activityMetrics(demoTrack(), 0.5, ["distance", "elevation"]);
+    expect(metrics.map((metric) => metric.key)).toEqual(["distance", "elevation"]);
+    expect(metrics[0].value).toMatch(/km$/);
+  });
+
+  it("computes a forward camera heading around the current position", () => {
+    const eastbound = buildTrack("East", "running", [
+      { latitude: 0, longitude: 0 },
+      { latitude: 0, longitude: 0.01 },
+    ]);
+    expect(headingAtProgress(eastbound, 0.5)).toBeCloseTo(90, 1);
   });
 });
