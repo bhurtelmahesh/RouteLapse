@@ -24,11 +24,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
 import { activityMetrics } from "@/lib/activity-metrics";
-import { aspectRatio, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
+import { aspectRatio, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
@@ -74,7 +75,10 @@ export function Studio() {
   const [metricLayout, setMetricLayout] = useState<MetricLayout>("vertical");
   const [metricScale, setMetricScale] = useState(1.2);
   const [metricPosition, setMetricPosition] = useState<OverlayPosition>("bottom-left");
-  const [imagePosition, setImagePosition] = useState<OverlayPosition>("bottom-right");
+  const [imagePosition, setImagePosition] = useState<ImagePosition>("bottom-right");
+  const [imageX, setImageX] = useState(82);
+  const [imageY, setImageY] = useState(78);
+  const [imageScale, setImageScale] = useState(0.38);
   const [overlayImage, setOverlayImage] = useState<{ name: string; src: string } | null>(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -85,6 +89,8 @@ export function Studio() {
   const [renderError, setRenderError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const overlayInputRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const overlayPointerRef = useRef<number | null>(null);
   const progressRef = useRef(progress);
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const renderAbortRef = useRef<AbortController | null>(null);
@@ -113,7 +119,12 @@ export function Studio() {
         setMetricLayout(settings.metricLayout ?? "vertical");
         setMetricScale(settings.metricScale ?? 1.2);
         setMetricPosition(settings.metricPosition ?? "bottom-left");
-        setImagePosition(settings.imagePosition ?? "bottom-right");
+        const savedImagePosition = settings.imagePosition ?? "bottom-right";
+        const savedImageCoordinates = imagePositionCoordinates(savedImagePosition);
+        setImagePosition(savedImagePosition);
+        setImageX(settings.imageX ?? savedImageCoordinates.x);
+        setImageY(settings.imageY ?? savedImageCoordinates.y);
+        setImageScale(settings.imageScale ?? 0.38);
       }
       setSettingsLoaded(true);
     });
@@ -122,8 +133,8 @@ export function Studio() {
 
   useEffect(() => {
     if (!settingsLoaded) return;
-    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition });
-  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition]);
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale });
+  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale]);
 
   useEffect(() => () => renderAbortRef.current?.abort(), []);
 
@@ -214,6 +225,38 @@ export function Studio() {
     setOverlayImage({ name: file.name, src: URL.createObjectURL(file) });
   }
 
+  function setImagePreset(position: Exclude<ImagePosition, "custom">) {
+    const coordinates = imagePositionCoordinates(position);
+    setImagePosition(position);
+    setImageX(coordinates.x);
+    setImageY(coordinates.y);
+  }
+
+  function updateImagePosition(clientX: number, clientY: number) {
+    const bounds = previewRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    setImagePosition("custom");
+    setImageX(Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)));
+    setImageY(Math.max(0, Math.min(100, ((clientY - bounds.top) / bounds.height) * 100)));
+  }
+
+  function handleImagePointerDown(event: ReactPointerEvent<HTMLImageElement>) {
+    overlayPointerRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateImagePosition(event.clientX, event.clientY);
+  }
+
+  function handleImagePointerMove(event: ReactPointerEvent<HTMLImageElement>) {
+    if (overlayPointerRef.current !== event.pointerId) return;
+    updateImagePosition(event.clientX, event.clientY);
+  }
+
+  function handleImagePointerUp(event: ReactPointerEvent<HTMLImageElement>) {
+    if (overlayPointerRef.current !== event.pointerId) return;
+    overlayPointerRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
   async function renderVideo() {
     if (renderProgress && renderProgress.phase !== "complete") {
       renderAbortRef.current?.abort();
@@ -230,7 +273,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -364,6 +407,7 @@ export function Studio() {
 
           <div className="flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/9 bg-[#05070a] p-2 shadow-[0_30px_80px_rgba(0,0,0,0.32)]">
             <div
+              ref={previewRef}
               className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
@@ -383,7 +427,17 @@ export function Studio() {
               {overlayImage && (
                 // User-selected object URLs are local previews and cannot use Next's image optimizer.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={overlayImage.src} alt="Imported transparent metrics overlay" className={`pointer-events-none absolute z-[510] max-h-[30%] max-w-[46%] object-contain drop-shadow-xl ${overlayPositionClass[imagePosition]}`} />
+                <img
+                  src={overlayImage.src}
+                  alt="Imported transparent metrics overlay"
+                  draggable={false}
+                  onPointerDown={handleImagePointerDown}
+                  onPointerMove={handleImagePointerMove}
+                  onPointerUp={handleImagePointerUp}
+                  onPointerCancel={handleImagePointerUp}
+                  className="absolute z-[510] max-h-[70%] -translate-x-1/2 -translate-y-1/2 cursor-move touch-none object-contain drop-shadow-xl"
+                  style={{ left: `${imageX}%`, top: `${imageY}%`, width: `${imageScale * 100}%` }}
+                />
               )}
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/65 to-transparent p-4 sm:p-6">
                 <div>
@@ -532,14 +586,21 @@ export function Studio() {
               {overlayImage ? (
                 <div className="rounded-lg border border-white/9 bg-white/[0.025] p-2">
                   <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-[10px] text-white">{overlayImage.name}</span><button onClick={() => setOverlayImage(null)} aria-label="Remove transparent overlay" className="text-[#7c8790] hover:text-white"><X size={13} /></button></div>
-                  <select value={imagePosition} onChange={(event) => setImagePosition(event.target.value as OverlayPosition)} aria-label="Image overlay position" className="mt-2 w-full rounded-md border border-white/10 bg-[#10151c] px-2 py-1.5 text-[10px] text-white">
-                    {(Object.keys(overlayPositionLabels) as OverlayPosition[]).map((position) => <option key={position} value={position}>{overlayPositionLabels[position]}</option>)}
+                  <select value={imagePosition} onChange={(event) => event.target.value !== "custom" && setImagePreset(event.target.value as Exclude<ImagePosition, "custom">)} aria-label="Image overlay position" className="mt-2 w-full rounded-md border border-white/10 bg-[#10151c] px-2 py-1.5 text-[10px] text-white">
+                    {(Object.keys(imagePositionLabels) as Array<Exclude<ImagePosition, "custom">>).map((position) => <option key={position} value={position}>{imagePositionLabels[position]}</option>)}
+                    <option value="custom" disabled>Custom</option>
                   </select>
+                  <div className="mt-3 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#77838f]"><label htmlFor="image-size">Size</label><span className="font-mono text-[#d8ff52]">{Math.round(imageScale * 100)}%</span></div>
+                  <input id="image-size" aria-label="Image overlay size" className="range-track mt-2 w-full" type="range" min="0.1" max="0.8" step="0.01" value={imageScale} onChange={(event) => setImageScale(Number(event.target.value))} />
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">X <input aria-label="Image overlay horizontal position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageX} onChange={(event) => { setImagePosition("custom"); setImageX(Number(event.target.value)); }} /></label>
+                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">Y <input aria-label="Image overlay vertical position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageY} onChange={(event) => { setImagePosition("custom"); setImageY(Number(event.target.value)); }} /></label>
+                  </div>
                 </div>
               ) : (
                 <button onClick={() => overlayInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/14 px-3 py-2.5 text-[10px] font-semibold text-[#8a959e] transition hover:border-[#d8ff52]/40 hover:text-white"><ImagePlus size={14} /> Add Strava PNG/WebP</button>
               )}
-              <p className="mt-2 text-[9px] leading-4 text-[#616d77]">Use a transparent screenshot or exported metrics card.</p>
+              <p className="mt-2 text-[9px] leading-4 text-[#616d77]">Use a transparent screenshot or exported metrics card. Drag it directly in the preview or use the size and position controls.</p>
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">

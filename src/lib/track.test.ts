@@ -4,7 +4,7 @@ import { activityMetrics } from "./activity-metrics";
 import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
-import { endRevealProgress, renderResolution } from "./scene";
+import { endRevealProgress, imagePositionCoordinates, renderResolution } from "./scene";
 import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
@@ -114,5 +114,10 @@ describe("track utilities", () => {
     expect(endRevealProgress(0.82)).toBe(0);
     expect(endRevealProgress(0.91)).toBeCloseTo(0.5, 5);
     expect(endRevealProgress(1)).toBe(1);
+  });
+
+  it("includes a centered transparent-image preset", () => {
+    expect(imagePositionCoordinates("center")).toEqual({ x: 50, y: 50 });
+    expect(imagePositionCoordinates("bottom-right")).toEqual({ x: 82, y: 78 });
   });
 });

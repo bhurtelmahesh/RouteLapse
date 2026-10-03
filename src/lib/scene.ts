@@ -5,6 +5,7 @@ export type Aspect = "16:9" | "9:16" | "1:1";
 export type MetricKey = "distance" | "elapsed" | "pace" | "elevation";
 export type MetricLayout = "vertical" | "grid";
 export type OverlayPosition = "top-left" | "top-right" | "center-left" | "center-right" | "bottom-left" | "bottom-right";
+export type ImagePosition = OverlayPosition | "center" | "custom";
 
 export type SceneSettings = {
   duration: number;
@@ -21,7 +22,10 @@ export type SceneSettings = {
   metricLayout: MetricLayout;
   metricScale: number;
   metricPosition: OverlayPosition;
-  imagePosition: OverlayPosition;
+  imagePosition: ImagePosition;
+  imageX: number;
+  imageY: number;
+  imageScale: number;
   imageOverlaySrc?: string;
 };
 
@@ -40,6 +44,21 @@ export const overlayPositionLabels: Record<OverlayPosition, string> = {
   "bottom-left": "Bottom left",
   "bottom-right": "Bottom right",
 };
+
+export const imagePositionLabels: Record<Exclude<ImagePosition, "custom">, string> = {
+  ...overlayPositionLabels,
+  center: "Center",
+};
+
+export function imagePositionCoordinates(position: ImagePosition) {
+  if (position === "top-left") return { x: 18, y: 22 };
+  if (position === "top-right") return { x: 82, y: 22 };
+  if (position === "center-left") return { x: 18, y: 50 };
+  if (position === "center-right") return { x: 82, y: 50 };
+  if (position === "bottom-left") return { x: 18, y: 78 };
+  if (position === "bottom-right") return { x: 82, y: 78 };
+  return { x: 50, y: 50 };
+}
 
 export const aspectRatio: Record<Aspect, string> = {
   "16:9": "16 / 9",

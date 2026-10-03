@@ -18,7 +18,7 @@ const steps = [
   { icon: FileUp, title: "Import an activity", body: "Drop a GPX or TCX file into the Activity panel. ZIP exports containing GPX or TCX activities are also supported." },
   { icon: Camera, title: "Direct the camera", body: "Choose Overview, Follow, or Cinematic. Set pitch and zoom, optionally fit the whole route, or enable Forward-up to rotate the map beneath a fixed frame." },
   { icon: Gauge, title: "Design the metrics", body: "Show or hide the built-in card, choose its fields, select Vertical or Grid, adjust text size, and place it in any of six positions." },
-  { icon: ImagePlus, title: "Add a transparent overlay", body: "Import a transparent PNG or WebP—such as a Strava-style metrics card—and position it independently from RouteLapse metrics." },
+  { icon: ImagePlus, title: "Add a transparent overlay", body: "Import a transparent PNG or WebP—such as a Strava-style metrics card—then drag, resize, center, or position it independently from RouteLapse metrics." },
   { icon: Download, title: "Render and download", body: "Choose 16:9, 9:16, or 1:1 and select Render HD video. Keep the tab open until the MP4 or WebM download is ready." },
 ];
 
@@ -75,7 +75,7 @@ export default function GuidePage() {
 
         <section className="mt-20 grid gap-5 md:grid-cols-2">
           <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-6"><LockKeyhole className="text-[#d8ff52]" size={20} /><h2 className="mt-4 text-xl font-bold">Privacy and saving</h2><p className="mt-3 text-sm leading-6 text-[#929da7]">Imported activity files stay in the current browser session and are not uploaded by the editor. Design settings save automatically in local browser storage; there is no manual Save button.</p></article>
-          <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-6"><Download className="text-[#d8ff52]" size={20} /><h2 className="mt-4 text-xl font-bold">Browser requirements</h2><p className="mt-3 text-sm leading-6 text-[#929da7]">Use a current desktop version of Chrome or Edge for HD rendering. An internet connection is required to load map tiles. MP4 is preferred, with WebM used when the browser does not expose an MP4 encoder.</p></article>
+          <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-6"><Download className="text-[#d8ff52]" size={20} /><h2 className="mt-4 text-xl font-bold">Browser and device support</h2><p className="mt-3 text-sm leading-6 text-[#929da7]">The responsive editor, route preview, activity import, overlay controls, and installable PWA work on mobile devices. For dependable Full HD export, use a current desktop version of Chrome or Edge. Android Chrome may render shorter videos on capable phones if RouteLapse remains in the foreground; iPhone and iPad editing works, but local HD export is not yet guaranteed. An internet connection is required to load map tiles. MP4 is preferred, with WebM used when available encoders require it.</p></article>
         </section>
 
         <section className="mt-20 rounded-2xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-6 sm:p-8">

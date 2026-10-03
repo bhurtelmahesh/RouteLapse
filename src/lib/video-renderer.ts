@@ -1,6 +1,6 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
 import { activityMetrics } from "./activity-metrics";
-import { endRevealProgress, renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
+import { endRevealProgress, imagePositionCoordinates, renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
 import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
 type WorldPoint = { x: number; y: number };
@@ -287,13 +287,17 @@ function drawFrame(
   }
 
   if (imageOverlay) {
-    const maximumWidth = width * 0.42;
-    const maximumHeight = height * 0.28;
-    const imageScale = Math.min(maximumWidth / imageOverlay.naturalWidth, maximumHeight / imageOverlay.naturalHeight, 1);
-    const imageWidth = imageOverlay.naturalWidth * imageScale;
-    const imageHeight = imageOverlay.naturalHeight * imageScale;
-    const imageBox = overlayCoordinates(settings.imagePosition, imageWidth, imageHeight, width, height, padding);
-    context.drawImage(imageOverlay, imageBox.x, imageBox.y, imageWidth, imageHeight);
+    const requestedWidth = width * (settings.imageScale ?? 0.38);
+    const maximumHeight = height * 0.7;
+    const fit = Math.min(requestedWidth / imageOverlay.naturalWidth, maximumHeight / imageOverlay.naturalHeight);
+    const imageWidth = imageOverlay.naturalWidth * fit;
+    const imageHeight = imageOverlay.naturalHeight * fit;
+    const preset = imagePositionCoordinates(settings.imagePosition ?? "bottom-right");
+    const centerX = width * ((settings.imageX ?? preset.x) / 100);
+    const centerY = height * ((settings.imageY ?? preset.y) / 100);
+    const imageX = Math.max(padding, Math.min(width - padding - imageWidth, centerX - imageWidth / 2));
+    const imageY = Math.max(padding, Math.min(height - padding * 1.75 - imageHeight, centerY - imageHeight / 2));
+    context.drawImage(imageOverlay, imageX, imageY, imageWidth, imageHeight);
   }
 
   const attribution = Array.from(new Set(mapTileLayers[settings.mapStyle].map((layer) => layer.attribution))).join(" · ");
