@@ -4,7 +4,7 @@ import { activityMetrics } from "./activity-metrics";
 import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
-import { renderResolution } from "./scene";
+import { endRevealProgress, renderResolution } from "./scene";
 import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
@@ -103,5 +103,11 @@ describe("track utilities", () => {
       { latitude: 0, longitude: 0.01 },
     ]);
     expect(headingAtProgress(eastbound, 0.5)).toBeCloseTo(90, 1);
+  });
+
+  it("smoothly reveals the full route at the end", () => {
+    expect(endRevealProgress(0.82)).toBe(0);
+    expect(endRevealProgress(0.91)).toBeCloseTo(0.5, 5);
+    expect(endRevealProgress(1)).toBe(1);
   });
 });

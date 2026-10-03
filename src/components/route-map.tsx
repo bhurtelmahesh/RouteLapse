@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import type {
   CircleMarker,
   Map as LeafletMap,
+  Point,
   Polyline as LeafletPolyline,
   TileLayer,
 } from "leaflet";
 import type { Track, TrackPoint } from "@/lib/track";
 import { headingAtProgress, sampleTrackAtProgress } from "@/lib/track";
 import { mapTileLayers, type MapStyle } from "@/lib/map-styles";
-import type { CameraMode } from "@/lib/scene";
+import { endRevealProgress, type CameraMode } from "@/lib/scene";
 
 export type { CameraMode } from "@/lib/scene";
 
@@ -38,7 +39,9 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
   const activeRouteRef = useRef<LeafletPolyline | null>(null);
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) : 0;
+  const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress);
+  const displayedPitch = pitch * (1 - reveal);
+  const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -50,6 +53,8 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
       map = L.map(containerRef.current, {
         attributionControl: true,
         zoomControl: true,
+        zoomSnap: 0.1,
+        zoomDelta: 0.5,
         preferCanvas: true,
       });
       fullRouteRef.current = L.polyline([], {
@@ -105,6 +110,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
           attribution: layer.attribution,
           className: layer.className,
           crossOrigin: true,
+          keepBuffer: 4,
           maxZoom: layer.maxZoom,
           ...(layer.subdomains ? { subdomains: layer.subdomains } : {}),
         }),
@@ -145,9 +151,30 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
     marker.setStyle({ color: lineColor });
 
     if (cameraMode !== "overview") {
-      map.setView(markerPosition, cameraZoom, { animate: false });
+      const bounds = fullRouteRef.current?.getBounds();
+      const routeCenter = bounds?.getCenter();
+      const mapSize = map.getSize();
+      const revealPadding: Point = { x: Math.max(54, mapSize.x * 0.14), y: Math.max(54, mapSize.y * 0.18) } as Point;
+      const fittedZoom = bounds ? map.getBoundsZoom(bounds, false, revealPadding) : cameraZoom;
+      const endReveal = endRevealProgress(progress);
+      const center: [number, number] = routeCenter
+        ? [
+            markerPosition[0] + (routeCenter.lat - markerPosition[0]) * endReveal,
+            markerPosition[1] + (routeCenter.lng - markerPosition[1]) * endReveal,
+          ]
+        : markerPosition;
+      map.setView(center, cameraZoom + (fittedZoom - cameraZoom) * endReveal, { animate: false });
     }
   }, [track, progress, cameraMode, cameraZoom, lineColor, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const mapPane = map?.getPane("mapPane");
+    if (!map || !mapPane) return;
+    const size = map.getSize();
+    mapPane.style.transformOrigin = `${size.x / 2}px ${size.y / 2}px`;
+    mapPane.style.rotate = heading ? `${-heading}deg` : "none";
+  }, [heading, mapReady]);
 
   return (
     <div
@@ -161,7 +188,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
           transform:
             cameraMode === "overview"
               ? "none"
-              : `rotateX(${Math.round(pitch * 0.68)}deg) rotateZ(${-Math.round(heading)}deg) scale(${(1 + pitch / 260).toFixed(3)})`,
+              : `rotateX(${Math.round(displayedPitch * 0.68)}deg) scale(${(1 + displayedPitch / 260).toFixed(3)})`,
           transformOrigin: "50% 58%",
         }}
       />

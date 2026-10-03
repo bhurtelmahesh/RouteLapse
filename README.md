@@ -15,7 +15,8 @@ Live app: [routelapse.web.app](https://routelapse.web.app/)
 - Switchable Street, Satellite, Hybrid, and Dark preview styles
 - Overview, follow, and cinematic camera modes with visible camera pitch
 - Video duration, camera pitch, camera zoom, aspect ratio, and route color controls
-- Selectable distance, time, pace, and elevation overlays with six positions
+- Selectable distance, time, pace, and elevation overlays with six positions, vertical/grid layouts, and adjustable text size
+- Automatic centered full-route reveal at the end of Follow and Cinematic videos
 - Transparent Strava-style PNG/WebP overlays with independent positioning
 - Local Full HD MP4 rendering in Chrome with WebM fallback
 - Verified 1080p landscape, 1080×1920 portrait, and 1080p square output

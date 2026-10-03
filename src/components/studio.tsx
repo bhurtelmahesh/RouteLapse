@@ -26,7 +26,7 @@ import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
 import { activityMetrics } from "@/lib/activity-metrics";
-import { aspectRatio, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type MetricKey, type OverlayPosition } from "@/lib/scene";
+import { aspectRatio, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
@@ -68,6 +68,8 @@ export function Studio() {
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
   const [metricFields, setMetricFields] = useState<MetricKey[]>(["distance", "elapsed", "pace"]);
+  const [metricLayout, setMetricLayout] = useState<MetricLayout>("vertical");
+  const [metricScale, setMetricScale] = useState(1.2);
   const [metricPosition, setMetricPosition] = useState<OverlayPosition>("bottom-left");
   const [imagePosition, setImagePosition] = useState<OverlayPosition>("bottom-right");
   const [overlayImage, setOverlayImage] = useState<{ name: string; src: string } | null>(null);
@@ -104,6 +106,8 @@ export function Studio() {
       setAspect(settings.aspect);
       setMapStyle(settings.mapStyle);
       setMetricFields(settings.metricFields ?? ["distance", "elapsed", "pace"]);
+      setMetricLayout(settings.metricLayout ?? "vertical");
+      setMetricScale(settings.metricScale ?? 1.2);
       setMetricPosition(settings.metricPosition ?? "bottom-left");
       setImagePosition(settings.imagePosition ?? "bottom-right");
     });
@@ -188,7 +192,7 @@ export function Studio() {
   }
 
   function saveProject() {
-    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricPosition, imagePosition });
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricLayout, metricScale, metricPosition, imagePosition });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2_000);
   }
@@ -221,7 +225,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -360,12 +364,12 @@ export function Studio() {
             >
               <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} mapStyle={mapStyle} />
               {!!metricFields.length && (
-                <div className={`pointer-events-none absolute z-[500] rounded-xl border border-white/15 bg-black/55 p-2.5 shadow-xl backdrop-blur-md ${overlayPositionClass[metricPosition]}`}>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div data-testid="video-metrics-overlay" data-layout={metricLayout} className={`pointer-events-none absolute z-[500] rounded-xl border border-white/12 bg-black/45 p-2.5 shadow-xl backdrop-blur-md ${overlayPositionClass[metricPosition]}`} style={{ minWidth: `${96 * metricScale}px` }}>
+                  <div className={metricLayout === "grid" ? "grid grid-cols-2 gap-x-5 gap-y-2.5" : "space-y-2.5"}>
                     {activityMetrics(track, progress, metricFields).map((metric) => (
                       <div key={metric.key}>
-                        <div className="text-[7px] font-semibold uppercase tracking-[0.16em] text-white/55">{metric.label}</div>
-                        <div className="mt-0.5 whitespace-nowrap font-mono text-[10px] font-bold text-white sm:text-xs">{metric.value}</div>
+                        <div className="font-semibold uppercase tracking-[0.16em] text-white/55" style={{ fontSize: `${8 * metricScale}px` }}>{metric.label}</div>
+                        <div className="mt-0.5 whitespace-nowrap font-mono font-bold text-white" style={{ fontSize: `${13 * metricScale}px` }}>{metric.value}</div>
                       </div>
                     ))}
                   </div>
@@ -509,6 +513,11 @@ export function Studio() {
               <select value={metricPosition} onChange={(event) => setMetricPosition(event.target.value as OverlayPosition)} aria-label="Metric position" className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-[10px] text-white">
                 {(Object.keys(overlayPositionLabels) as OverlayPosition[]).map((position) => <option key={position} value={position}>{overlayPositionLabels[position]}</option>)}
               </select>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(["vertical", "grid"] as MetricLayout[]).map((layout) => <button key={layout} onClick={() => setMetricLayout(layout)} aria-pressed={metricLayout === layout} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold capitalize transition ${metricLayout === layout ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>{layout}</button>)}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#77838f]"><label htmlFor="metric-size">Text size</label><span className="font-mono text-[#d8ff52]">{Math.round(metricScale * 100)}%</span></div>
+              <input id="metric-size" aria-label="Metric text size" className="range-track mt-2 w-full" type="range" min="0.8" max="1.6" step="0.1" value={metricScale} onChange={(event) => setMetricScale(Number(event.target.value))} />
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">

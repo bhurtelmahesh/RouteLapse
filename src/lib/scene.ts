@@ -3,6 +3,7 @@ import type { MapStyle } from "./map-styles";
 export type CameraMode = "overview" | "follow" | "cinematic";
 export type Aspect = "16:9" | "9:16" | "1:1";
 export type MetricKey = "distance" | "elapsed" | "pace" | "elevation";
+export type MetricLayout = "vertical" | "grid";
 export type OverlayPosition = "top-left" | "top-right" | "center-left" | "center-right" | "bottom-left" | "bottom-right";
 
 export type SceneSettings = {
@@ -16,6 +17,8 @@ export type SceneSettings = {
   aspect: Aspect;
   mapStyle: MapStyle;
   metricFields: MetricKey[];
+  metricLayout: MetricLayout;
+  metricScale: number;
   metricPosition: OverlayPosition;
   imagePosition: OverlayPosition;
   imageOverlaySrc?: string;
@@ -42,6 +45,11 @@ export const aspectRatio: Record<Aspect, string> = {
   "9:16": "9 / 16",
   "1:1": "1 / 1",
 };
+
+export function endRevealProgress(progress: number) {
+  const normalized = Math.max(0, Math.min(1, (progress - 0.82) / 0.18));
+  return normalized * normalized * (3 - 2 * normalized);
+}
 
 export function renderResolution(aspect: Aspect) {
   if (aspect === "9:16") return { width: 1080, height: 1920 };

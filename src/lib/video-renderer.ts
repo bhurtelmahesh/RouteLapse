@@ -1,10 +1,10 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
 import { activityMetrics } from "./activity-metrics";
-import { renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
+import { endRevealProgress, renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
 import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
 type WorldPoint = { x: number; y: number };
-type Camera = { center: WorldPoint; zoom: number; tilted: boolean; heading: number };
+type Camera = { center: WorldPoint; zoom: number; tileZoom: number; pitch: number; heading: number };
 
 export type RenderProgress = {
   phase: "preparing" | "recording" | "complete";
@@ -37,7 +37,7 @@ function overviewCamera(track: Track, zoom: number): Camera {
     },
     zoom,
   );
-  return { center, zoom, tilted: false, heading: 0 };
+  return { center, zoom, tileZoom: Math.round(zoom), pitch: 0, heading: 0 };
 }
 
 function fittedOverviewCamera(track: Track, width: number, height: number, maximumZoom: number): Camera {
@@ -54,24 +54,42 @@ function cameraAt(track: Track, settings: SceneSettings, progress: number, width
   const zoom = Math.min(maximumZoom, Math.max(10, settings.cameraZoom));
   if (settings.cameraMode === "overview") return settings.overviewAutoFit ? fittedOverviewCamera(track, width, height, maximumZoom) : overviewCamera(track, zoom);
   const point = sampleTrackAtProgress(track, progress).point;
-  return { center: project(point, zoom), zoom, tilted: settings.pitch > 0, heading: settings.forwardUp ? headingAtProgress(track, progress) : 0 };
+  const overview = fittedOverviewCamera(track, width, height, maximumZoom);
+  const reveal = endRevealProgress(progress);
+  const displayZoom = zoom + (overview.zoom - zoom) * reveal;
+  const centerPoint = {
+    latitude: point.latitude + ((track.bounds.minLatitude + track.bounds.maxLatitude) / 2 - point.latitude) * reveal,
+    longitude: point.longitude + ((track.bounds.minLongitude + track.bounds.maxLongitude) / 2 - point.longitude) * reveal,
+  };
+  return {
+    center: project(centerPoint, displayZoom),
+    zoom: displayZoom,
+    tileZoom: Math.round(displayZoom),
+    pitch: settings.pitch * (1 - reveal),
+    heading: settings.forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0,
+  };
 }
 
 function visibleTiles(camera: Camera, width: number, height: number) {
-  const left = camera.center.x - width / 2;
-  const top = camera.center.y - height / 2;
-  const margin = camera.tilted || camera.heading ? Math.hypot(width, height) * 0.32 : 0;
+  const tileScale = 2 ** (camera.zoom - camera.tileZoom);
+  const tileCenter = { x: camera.center.x / tileScale, y: camera.center.y / tileScale };
+  const logicalWidth = width / tileScale;
+  const logicalHeight = height / tileScale;
+  const left = tileCenter.x - logicalWidth / 2;
+  const top = tileCenter.y - logicalHeight / 2;
+  const margin = camera.pitch || camera.heading ? Math.hypot(logicalWidth, logicalHeight) * 0.32 : 0;
   const firstX = Math.floor((left - margin) / TILE_SIZE);
-  const lastX = Math.floor((left + width + margin) / TILE_SIZE);
+  const lastX = Math.floor((left + logicalWidth + margin) / TILE_SIZE);
   const firstY = Math.max(0, Math.floor((top - margin) / TILE_SIZE));
-  const lastY = Math.min(2 ** camera.zoom - 1, Math.floor((top + height + margin) / TILE_SIZE));
-  const tiles: Array<{ drawX: number; drawY: number; x: number; y: number }> = [];
-  const worldTiles = 2 ** camera.zoom;
+  const lastY = Math.min(2 ** camera.tileZoom - 1, Math.floor((top + logicalHeight + margin) / TILE_SIZE));
+  const tiles: Array<{ drawX: number; drawY: number; drawSize: number; x: number; y: number }> = [];
+  const worldTiles = 2 ** camera.tileZoom;
   for (let y = firstY; y <= lastY; y += 1) {
     for (let x = firstX; x <= lastX; x += 1) {
       tiles.push({
-        drawX: x * TILE_SIZE - left,
-        drawY: y * TILE_SIZE - top,
+        drawX: (x * TILE_SIZE - left) * tileScale,
+        drawY: (y * TILE_SIZE - top) * tileScale,
+        drawSize: TILE_SIZE * tileScale,
         x: ((x % worldTiles) + worldTiles) % worldTiles,
         y,
       });
@@ -83,7 +101,7 @@ function visibleTiles(camera: Camera, width: number, height: number) {
 function urlsForFrame(track: Track, settings: SceneSettings, progress: number, width: number, height: number) {
   const camera = cameraAt(track, settings, progress, width, height);
   return mapTileLayers[settings.mapStyle].flatMap((layer) =>
-    visibleTiles(camera, width, height).map((tile) => tileUrl(layer, camera.zoom, tile.x, tile.y)),
+    visibleTiles(camera, width, height).map((tile) => tileUrl(layer, camera.tileZoom, tile.x, tile.y)),
   );
 }
 
@@ -147,8 +165,8 @@ function drawTiles(
 ) {
   for (const layer of layers) {
     for (const tile of visibleTiles(camera, width, height)) {
-      const image = images.get(tileUrl(layer, camera.zoom, tile.x, tile.y));
-      if (image) context.drawImage(image, tile.drawX, tile.drawY, TILE_SIZE, TILE_SIZE);
+      const image = images.get(tileUrl(layer, camera.tileZoom, tile.x, tile.y));
+      if (image) context.drawImage(image, tile.drawX, tile.drawY, tile.drawSize + 0.5, tile.drawSize + 0.5);
     }
   }
 }
@@ -195,7 +213,7 @@ function drawFrame(
   const sample = sampleTrackAtProgress(track, progress);
   context.fillStyle = "#11161c";
   context.fillRect(0, 0, width, height);
-  const tilt = settings.cameraMode === "overview" ? 0 : settings.pitch;
+  const tilt = camera.pitch;
   const verticalScale = Math.cos((tilt * 0.72 * Math.PI) / 180);
   context.save();
   context.translate(width / 2, height / 2 + height * (1 - verticalScale) * 0.08);
@@ -242,25 +260,29 @@ function drawFrame(
 
   const metrics = activityMetrics(track, progress, settings.metricFields);
   if (metrics.length) {
-    const boxWidth = Math.min(width * 0.42, 430 * scale);
-    const rows = Math.ceil(metrics.length / 2);
-    const boxHeight = (34 + rows * 58) * scale;
+    const metricScale = settings.metricScale ?? 1.2;
+    const layout = settings.metricLayout ?? "vertical";
+    const columns = layout === "grid" ? 2 : 1;
+    const rows = Math.ceil(metrics.length / columns);
+    const boxWidth = Math.min(width * 0.46, (layout === "grid" ? 360 : 230) * scale * metricScale);
+    const rowHeight = 64 * scale * metricScale;
+    const boxHeight = 24 * scale + rows * rowHeight;
     const box = overlayCoordinates(settings.metricPosition, boxWidth, boxHeight, width, height, padding);
-    context.fillStyle = "rgba(0,0,0,.62)";
+    context.fillStyle = "rgba(0,0,0,.48)";
     roundedRect(context, box.x, box.y, boxWidth, boxHeight, 16 * scale);
     context.fill();
     metrics.forEach((metric, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      const x = box.x + 20 * scale + column * (boxWidth / 2);
-      const y = box.y + 27 * scale + row * 58 * scale;
+      const column = index % columns;
+      const row = Math.floor(index / columns);
+      const x = box.x + 16 * scale + column * (boxWidth / columns);
+      const y = box.y + 25 * scale + row * rowHeight;
       context.textAlign = "left";
       context.fillStyle = "rgba(255,255,255,.6)";
-      context.font = `700 ${10 * scale}px Arial`;
+      context.font = `700 ${11 * scale * metricScale}px Arial`;
       context.fillText(metric.label.toUpperCase(), x, y);
       context.fillStyle = "#ffffff";
-      context.font = `700 ${19 * scale}px monospace`;
-      context.fillText(metric.value, x, y + 23 * scale);
+      context.font = `700 ${24 * scale * metricScale}px monospace`;
+      context.fillText(metric.value, x, y + 29 * scale * metricScale);
     });
   }
 
