@@ -53,7 +53,7 @@ Strava requires a server-side client secret for the authorization-code exchange.
 - [x] Downloadable local output
 - [x] Landscape, portrait, and square Full HD output
 - [x] Optional metrics card plus freely positioned and dynamically sized transparent image overlays
-- [x] Optional website watermark using the original RouteLapse title position
+- [x] Optional website watermark using the original RouteLapse title position plus an always-on animated branded outro
 - [x] Smooth centered full-route reveal at the end of moving-camera videos
 - [x] Automatic local setting persistence and SEO-indexable user guide
 - [x] Fixed-frame pitched camera presentation with adjustable zoom in every mode

@@ -39,6 +39,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
   const activeRouteRef = useRef<LeafletPolyline | null>(null);
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
   const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress);
   const displayedPitch = pitch * (1 - reveal);
   const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
@@ -52,7 +53,8 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
       if (disposed || !containerRef.current) return;
       map = L.map(containerRef.current, {
         attributionControl: true,
-        zoomControl: true,
+        zoomControl: false,
+        scrollWheelZoom: false,
         zoomSnap: 0.1,
         zoomDelta: 0.5,
         preferCanvas: true,
@@ -150,7 +152,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
     marker.setLatLng(markerPosition);
     marker.setStyle({ color: lineColor });
 
-    if (cameraMode !== "overview") {
+    if (cameraMode !== "overview" && !isInteracting) {
       const bounds = fullRouteRef.current?.getBounds();
       const routeCenter = bounds?.getCenter();
       const mapSize = map.getSize();
@@ -165,7 +167,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
         : markerPosition;
       map.setView(center, cameraZoom + (fittedZoom - cameraZoom) * endReveal, { animate: false });
     }
-  }, [track, progress, cameraMode, cameraZoom, lineColor, mapReady]);
+  }, [track, progress, cameraMode, cameraZoom, lineColor, mapReady, isInteracting]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -173,25 +175,36 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
     if (!map || !mapPane) return;
     const size = map.getSize();
     mapPane.style.transformOrigin = `${size.x / 2}px ${size.y / 2}px`;
-    mapPane.style.rotate = heading ? `${-heading}deg` : "none";
-  }, [heading, mapReady]);
+    mapPane.style.rotate = heading && !isInteracting ? `${-heading}deg` : "none";
+  }, [heading, mapReady, isInteracting]);
 
   return (
     <div
-      className="h-full w-full overflow-hidden rounded-[inherit] bg-[#080b0f] [perspective:1200px]"
+      className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#080b0f] [perspective:1200px]"
       aria-label="Animated route preview map"
+      title="Drag to move. The camera flattens while interacting. Use +/−, double-click, or pinch to zoom."
     >
       <div
         ref={containerRef}
-        className="h-full w-full rounded-[inherit] transition-transform duration-500 ease-out"
+        onPointerDown={() => setIsInteracting(true)}
+        onPointerUp={() => setIsInteracting(false)}
+        onPointerCancel={() => setIsInteracting(false)}
+        onPointerLeave={(event) => {
+          if (!event.currentTarget.hasPointerCapture(event.pointerId)) setIsInteracting(false);
+        }}
+        className={`h-full w-full rounded-[inherit] ease-out ${isInteracting ? "transition-none" : "transition-transform duration-500"}`}
         style={{
           transform:
-            cameraMode === "overview"
+            cameraMode === "overview" || isInteracting
               ? "none"
               : `rotateX(${Math.round(displayedPitch * 0.68)}deg) scale(${(1 + displayedPitch / 260).toFixed(3)})`,
           transformOrigin: "50% 58%",
         }}
       />
+      <div className="absolute left-3 top-3 z-[550] grid overflow-hidden rounded-lg border border-white/15 bg-[#090d12]/90 shadow-lg backdrop-blur-sm">
+        <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn(0.5)} className="grid h-8 w-8 place-items-center border-b border-white/12 text-lg font-medium leading-none text-white transition hover:bg-white/10">+</button>
+        <button type="button" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut(0.5)} className="grid h-8 w-8 place-items-center text-lg font-medium leading-none text-white transition hover:bg-white/10">−</button>
+      </div>
     </div>
   );
 }

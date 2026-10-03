@@ -29,7 +29,7 @@ import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
 import { activityMetrics } from "@/lib/activity-metrics";
-import { aspectRatio, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, WATERMARK_TEXT, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
+import { aspectRatio, brandOutroProgress, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, WATERMARK_TEXT, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
@@ -101,6 +101,7 @@ export function Studio() {
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => sportFilter === "all" || item.sport === sportFilter)
     .filter(({ item }) => item.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const outroProgress = brandOutroProgress(progress, duration);
 
   useEffect(() => {
     const settings = loadProjectSettings();
@@ -450,6 +451,16 @@ export function Studio() {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 sm:p-6 sm:pt-16">
                 <div className="text-[10px] text-white/60">{Math.round(progress * 100)}% complete</div>
               </div>
+              {outroProgress > 0 && (
+                <div data-testid="brand-outro" className="pointer-events-none absolute inset-0 z-[600] grid place-items-center overflow-hidden bg-[#080b0f] text-center" style={{ opacity: Math.min(1, outroProgress * 1.45) }}>
+                  <div className="absolute h-[55%] w-[55%] rounded-full bg-[#d8ff52]/10 blur-3xl" style={{ transform: `scale(${0.65 + outroProgress * 0.55})`, opacity: outroProgress * 0.8 }} />
+                  <div className="relative flex flex-col items-center" style={{ transform: `translateY(${(1 - outroProgress) * 18}px) scale(${0.72 + outroProgress * 0.28})`, opacity: outroProgress }}>
+                    <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#d8ff52] text-[#0c1003] shadow-[0_0_38px_rgba(216,255,82,0.3)] sm:h-20 sm:w-20" style={{ transform: `rotate(${(1 - outroProgress) * -12}deg)` }}><Route className="h-7 w-7 sm:h-10 sm:w-10" strokeWidth={2.5} /></span>
+                    <div className="mt-4 text-xl font-bold tracking-[-0.04em] sm:text-3xl">RouteLapse</div>
+                    <div className="mt-1 font-mono text-[9px] tracking-[0.16em] text-white/55 sm:text-xs">{WATERMARK_TEXT}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -616,7 +627,7 @@ export function Studio() {
             <div className="mt-5 sm:mt-0 lg:mt-5">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Branding</label>
               <button data-testid="watermark-toggle" onClick={() => setShowWatermark((value) => !value)} aria-pressed={showWatermark} className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[10px] font-semibold transition ${showWatermark ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}><span>Website watermark</span><span>{showWatermark ? "Visible" : "Hidden"}</span></button>
-              <p className="mt-2 font-mono text-[9px] text-[#616d77]">{WATERMARK_TEXT}</p>
+              <p className="mt-2 text-[9px] leading-4 text-[#616d77]"><span className="font-mono">{WATERMARK_TEXT}</span> appears in the corner when enabled. The animated RouteLapse outro is always included.</p>
             </div>
 
             <div className="mt-5 rounded-xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-3 sm:mt-0 lg:mt-5">

@@ -73,6 +73,14 @@ export function endRevealProgress(progress: number) {
   return normalized * normalized * (3 - 2 * normalized);
 }
 
+export function brandOutroProgress(progress: number, duration: number) {
+  const safeDuration = Math.max(1, duration);
+  const outroDuration = Math.min(1.8, Math.max(0.8, safeDuration * 0.12));
+  const start = 1 - outroDuration / safeDuration;
+  const normalized = Math.max(0, Math.min(1, (progress - start) / (1 - start)));
+  return normalized * normalized * (3 - 2 * normalized);
+}
+
 export function renderResolution(aspect: Aspect) {
   if (aspect === "9:16") return { width: 1080, height: 1920 };
   if (aspect === "1:1") return { width: 1080, height: 1080 };

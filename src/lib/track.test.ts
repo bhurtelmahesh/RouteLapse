@@ -4,7 +4,7 @@ import { activityMetrics } from "./activity-metrics";
 import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
-import { endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT } from "./scene";
+import { brandOutroProgress, endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT } from "./scene";
 import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
@@ -123,5 +123,11 @@ describe("track utilities", () => {
 
   it("uses the production website for optional watermark branding", () => {
     expect(WATERMARK_TEXT).toBe("routelapse.web.app");
+  });
+
+  it("animates branding only during the final 1.8 seconds", () => {
+    expect(brandOutroProgress(0.89, 18)).toBe(0);
+    expect(brandOutroProgress(0.95, 18)).toBeGreaterThan(0);
+    expect(brandOutroProgress(1, 18)).toBe(1);
   });
 });

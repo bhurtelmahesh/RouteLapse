@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 const steps = [
   { icon: Route, title: "Start with the demo", body: "The studio opens with a real Morning Run route so you can try every control before importing your own activity." },
   { icon: FileUp, title: "Import an activity", body: "Drop a GPX or TCX file into the Activity panel. ZIP exports containing GPX or TCX activities are also supported." },
-  { icon: Camera, title: "Direct the camera", body: "Choose Overview, Follow, or Cinematic. Set pitch and zoom, optionally fit the whole route, or enable Forward-up to rotate the map beneath a fixed frame." },
+  { icon: Camera, title: "Direct the camera", body: "Choose Overview, Follow, or Cinematic. Set pitch and zoom, optionally fit the whole route, or enable Forward-up to rotate the map beneath a fixed frame. The preview temporarily flattens while you drag for precise movement; use the fixed +/− controls, double-click, or pinch to zoom without capturing page scrolling." },
   { icon: Gauge, title: "Design the metrics", body: "Show or hide the built-in card, choose its fields, select Vertical or Grid, adjust text size, and place it in any of six positions." },
   { icon: ImagePlus, title: "Add a transparent overlay", body: "Import a transparent PNG or WebP—such as a Strava-style metrics card—then drag, resize, center, or position it independently from RouteLapse metrics." },
-  { icon: Download, title: "Render and download", body: "Choose 16:9, 9:16, or 1:1, decide whether to show the routelapse.web.app watermark, and select Render HD video. Keep the tab open until the MP4 or WebM download is ready." },
+  { icon: Download, title: "Render and download", body: "Choose 16:9, 9:16, or 1:1, decide whether to show the optional routelapse.web.app corner watermark, then select Render HD video. Every export includes the animated RouteLapse outro. Keep the tab open until the MP4 or WebM download is ready." },
 ];
 
 const cameraRows = [

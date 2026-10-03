@@ -1,6 +1,6 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
 import { activityMetrics } from "./activity-metrics";
-import { endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT, type OverlayPosition, type SceneSettings } from "./scene";
+import { brandOutroProgress, endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT, type OverlayPosition, type SceneSettings } from "./scene";
 import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
 type WorldPoint = { x: number; y: number };
@@ -308,6 +308,72 @@ function drawFrame(
   context.fillStyle = "rgba(255,255,255,.72)";
   context.fillText(attribution.slice(0, 180), padding, height - padding);
   context.textAlign = "left";
+
+  drawBrandOutro(context, progress, settings.duration, width, height, settings.lineColor);
+}
+
+function drawBrandOutro(
+  context: CanvasRenderingContext2D,
+  progress: number,
+  duration: number,
+  width: number,
+  height: number,
+  accent: string,
+) {
+  const outro = brandOutroProgress(progress, duration);
+  if (outro <= 0) return;
+  const scale = Math.max(1, Math.min(width, height) / 720);
+  const fade = Math.min(1, outro * 1.45);
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const logoScale = 0.72 + outro * 0.28;
+  const logoSize = 94 * scale * logoScale;
+  const logoX = centerX - logoSize / 2;
+  const logoY = centerY - 91 * scale + (1 - outro) * 18 * scale;
+
+  context.save();
+  context.globalAlpha = fade;
+  context.fillStyle = "#080b0f";
+  context.fillRect(0, 0, width, height);
+
+  const glow = context.createRadialGradient(centerX, centerY - 35 * scale, 0, centerX, centerY - 35 * scale, Math.min(width, height) * 0.34);
+  glow.addColorStop(0, "rgba(216,255,82,.16)");
+  glow.addColorStop(1, "rgba(216,255,82,0)");
+  context.fillStyle = glow;
+  context.fillRect(0, 0, width, height);
+
+  context.save();
+  context.translate(centerX, logoY + logoSize / 2);
+  context.rotate(((1 - outro) * -12 * Math.PI) / 180);
+  context.translate(-centerX, -(logoY + logoSize / 2));
+  context.fillStyle = accent;
+  roundedRect(context, logoX, logoY, logoSize, logoSize, 22 * scale);
+  context.fill();
+
+  context.strokeStyle = "#0c1003";
+  context.lineWidth = 6 * scale * logoScale;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.beginPath();
+  context.moveTo(centerX - 21 * scale * logoScale, logoY + 27 * scale * logoScale);
+  context.bezierCurveTo(centerX + 17 * scale * logoScale, logoY + 20 * scale * logoScale, centerX - 18 * scale * logoScale, logoY + 67 * scale * logoScale, centerX + 22 * scale * logoScale, logoY + 68 * scale * logoScale);
+  context.stroke();
+  for (const [x, y] of [[-21, 27], [22, 68]]) {
+    context.beginPath();
+    context.arc(centerX + x * scale * logoScale, logoY + y * scale * logoScale, 7 * scale * logoScale, 0, Math.PI * 2);
+    context.fillStyle = "#0c1003";
+    context.fill();
+  }
+  context.restore();
+
+  context.textAlign = "center";
+  context.fillStyle = "#ffffff";
+  context.font = `700 ${42 * scale * logoScale}px Arial`;
+  context.fillText("RouteLapse", centerX, logoY + logoSize + 58 * scale);
+  context.fillStyle = "rgba(255,255,255,.58)";
+  context.font = `600 ${14 * scale}px monospace`;
+  context.fillText(WATERMARK_TEXT, centerX, logoY + logoSize + 88 * scale);
+  context.restore();
 }
 
 function overlayCoordinates(
