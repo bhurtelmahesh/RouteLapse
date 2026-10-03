@@ -1,3 +1,5 @@
+import { morningRunDemoPoints, morningRunDemoStartedAt } from "./demo-track-data";
+
 export type TrackPoint = {
   latitude: number;
   longitude: number;
@@ -212,26 +214,17 @@ export function formatDuration(durationSeconds: number) {
 }
 
 export function demoTrack(): Track {
-  const points: TrackPoint[] = [
-    [35.68175, 139.7505],
-    [35.68352, 139.75366],
-    [35.6857, 139.7554],
-    [35.68845, 139.75486],
-    [35.69045, 139.75245],
-    [35.6914, 139.7487],
-    [35.69072, 139.7449],
-    [35.68866, 139.7424],
-    [35.68587, 139.74163],
-    [35.6831, 139.7428],
-    [35.68095, 139.74555],
-    [35.68028, 139.7485],
-    [35.68175, 139.7505],
-  ].map(([latitude, longitude], index) => ({
+  const startedAt = Date.parse(morningRunDemoStartedAt);
+  const points: TrackPoint[] = morningRunDemoPoints.map(([latitude, longitude, elevation, seconds]) => ({
     latitude,
     longitude,
-    elevation: 18 + Math.sin(index / 2) * 5,
-    time: new Date(Date.UTC(2026, 8, 27, 6, 30, index * 135)).toISOString(),
+    elevation,
+    time: new Date(startedAt + seconds * 1_000).toISOString(),
   }));
 
-  return buildTrack("Imperial Loop — Demo", "running", points);
+  return {
+    ...buildTrack("Morning Run — Demo", "running", points),
+    distanceMeters: 5_040,
+    durationSeconds: 32 * 60 + 43,
+  };
 }

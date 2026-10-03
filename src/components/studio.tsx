@@ -6,6 +6,7 @@ import {
   Download,
   Film,
   Gauge,
+  HelpCircle,
   ImagePlus,
   Layers3,
   LockKeyhole,
@@ -21,6 +22,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
@@ -67,6 +69,7 @@ export function Studio() {
   const [lineColor, setLineColor] = useState("#d8ff52");
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
+  const [showMetricCard, setShowMetricCard] = useState(true);
   const [metricFields, setMetricFields] = useState<MetricKey[]>(["distance", "elapsed", "pace"]);
   const [metricLayout, setMetricLayout] = useState<MetricLayout>("vertical");
   const [metricScale, setMetricScale] = useState(1.2);
@@ -76,7 +79,7 @@ export function Studio() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [sportFilter, setSportFilter] = useState("all");
-  const [saved, setSaved] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
   const [renderedVideo, setRenderedVideo] = useState<{ url: string; name: string; type: string } | null>(null);
   const [renderError, setRenderError] = useState("");
@@ -94,25 +97,33 @@ export function Studio() {
 
   useEffect(() => {
     const settings = loadProjectSettings();
-    if (!settings) return;
     const frame = window.requestAnimationFrame(() => {
-      setDuration(settings.duration);
-      setCameraMode(settings.cameraMode);
-      setPitch(settings.pitch);
-      setCameraZoom(settings.cameraZoom ?? 16);
-      setForwardUp(settings.forwardUp ?? false);
-      setOverviewAutoFit(settings.overviewAutoFit ?? false);
-      setLineColor(settings.lineColor);
-      setAspect(settings.aspect);
-      setMapStyle(settings.mapStyle);
-      setMetricFields(settings.metricFields ?? ["distance", "elapsed", "pace"]);
-      setMetricLayout(settings.metricLayout ?? "vertical");
-      setMetricScale(settings.metricScale ?? 1.2);
-      setMetricPosition(settings.metricPosition ?? "bottom-left");
-      setImagePosition(settings.imagePosition ?? "bottom-right");
+      if (settings) {
+        setDuration(settings.duration);
+        setCameraMode(settings.cameraMode);
+        setPitch(settings.pitch);
+        setCameraZoom(settings.cameraZoom ?? 16);
+        setForwardUp(settings.forwardUp ?? false);
+        setOverviewAutoFit(settings.overviewAutoFit ?? false);
+        setLineColor(settings.lineColor);
+        setAspect(settings.aspect);
+        setMapStyle(settings.mapStyle);
+        setShowMetricCard(settings.showMetricCard ?? true);
+        setMetricFields(settings.metricFields ?? ["distance", "elapsed", "pace"]);
+        setMetricLayout(settings.metricLayout ?? "vertical");
+        setMetricScale(settings.metricScale ?? 1.2);
+        setMetricPosition(settings.metricPosition ?? "bottom-left");
+        setImagePosition(settings.imagePosition ?? "bottom-right");
+      }
+      setSettingsLoaded(true);
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition });
+  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition]);
 
   useEffect(() => () => renderAbortRef.current?.abort(), []);
 
@@ -191,12 +202,6 @@ export function Studio() {
     resetPlayback();
   }
 
-  function saveProject() {
-    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricLayout, metricScale, metricPosition, imagePosition });
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2_000);
-  }
-
   function handleOverlayImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -225,7 +230,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -266,9 +271,9 @@ export function Studio() {
           <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-[#8d99a5] sm:flex">
             <LockKeyhole size={12} className="text-[#d8ff52]" /> Routes stay local
           </div>
-          <button onClick={saveProject} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-[#c5ccd2] transition hover:bg-white/[0.08]">
-            {saved ? "Saved locally" : "Save project"}
-          </button>
+          <Link href="/guide" className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-[#c5ccd2] transition hover:bg-white/[0.08] hover:text-white">
+            <HelpCircle size={14} /> User guide
+          </Link>
         </div>
       </header>
 
@@ -363,7 +368,7 @@ export function Studio() {
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
               <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} mapStyle={mapStyle} />
-              {!!metricFields.length && (
+              {showMetricCard && !!metricFields.length && (
                 <div data-testid="video-metrics-overlay" data-layout={metricLayout} className={`pointer-events-none absolute z-[500] rounded-xl border border-white/12 bg-black/45 p-2.5 shadow-xl backdrop-blur-md ${overlayPositionClass[metricPosition]}`} style={{ minWidth: `${96 * metricScale}px` }}>
                   <div className={metricLayout === "grid" ? "grid grid-cols-2 gap-x-5 gap-y-2.5" : "space-y-2.5"}>
                     {activityMetrics(track, progress, metricFields).map((metric) => (
@@ -500,6 +505,7 @@ export function Studio() {
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Video metrics</label>
+              <button data-testid="metric-card-toggle" onClick={() => setShowMetricCard((value) => !value)} aria-pressed={showMetricCard} className={`mb-2 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[10px] font-semibold transition ${showMetricCard ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}><span>Metrics card</span><span>{showMetricCard ? "Visible" : "Hidden"}</span></button>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(metricLabels) as MetricKey[]).map((metric) => {
                   const selected = metricFields.includes(metric);

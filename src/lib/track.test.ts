@@ -59,8 +59,13 @@ describe("track utilities", () => {
     expect(tracks).toHaveLength(2);
   });
 
-  it("ships with a non-private demo route", () => {
-    expect(demoTrack().points.length).toBeGreaterThan(10);
+  it("ships with the Morning Run demo route", () => {
+    const demo = demoTrack();
+    expect(demo.name).toBe("Morning Run — Demo");
+    expect(demo.points).toHaveLength(2_134);
+    expect(demo.distanceMeters).toBe(5_040);
+    expect(demo.durationSeconds).toBe(1_963);
+    expect(activityMetrics(demo, 1, ["pace"])[0].value).toBe("6:29 /km");
   });
 
   it("interpolates continuous motion by travelled distance", () => {

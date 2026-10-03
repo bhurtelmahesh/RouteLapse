@@ -258,7 +258,7 @@ function drawFrame(
   context.fillStyle = "rgba(255,255,255,.68)";
   context.fillText(`${Math.round(progress * 100)}% COMPLETE`, width - padding, height - padding);
 
-  const metrics = activityMetrics(track, progress, settings.metricFields);
+  const metrics = settings.showMetricCard ? activityMetrics(track, progress, settings.metricFields) : [];
   if (metrics.length) {
     const metricScale = settings.metricScale ?? 1.2;
     const layout = settings.metricLayout ?? "vertical";

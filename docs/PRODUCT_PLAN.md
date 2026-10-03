@@ -52,8 +52,9 @@ Strava requires a server-side client secret for the authorization-code exchange.
 - [ ] Cloud FFmpeg encoding for 1080p/4K render jobs
 - [x] Downloadable local output
 - [x] Landscape, portrait, and square Full HD output
-- [x] Selectable metrics with layout, text-size, position controls, and positioned transparent image overlays
+- [x] Optional metrics card with layout, text-size, position controls, and positioned transparent image overlays
 - [x] Smooth centered full-route reveal at the end of moving-camera videos
+- [x] Automatic local setting persistence and SEO-indexable user guide
 - [x] Fixed-frame pitched camera presentation with adjustable zoom in every mode
 - [ ] Short-lived Cloud Storage URLs for cloud renders
 - [ ] Visual regression tests comparing preview and rendered frames

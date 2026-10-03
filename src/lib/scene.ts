@@ -16,6 +16,7 @@ export type SceneSettings = {
   lineColor: string;
   aspect: Aspect;
   mapStyle: MapStyle;
+  showMetricCard: boolean;
   metricFields: MetricKey[];
   metricLayout: MetricLayout;
   metricScale: number;
