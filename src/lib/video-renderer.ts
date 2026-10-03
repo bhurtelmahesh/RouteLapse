@@ -1,5 +1,6 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
 import { activityMetrics } from "./activity-metrics";
+import { heatLegendLabels, segmentHeatColors } from "./heat-map";
 import { brandOutroProgress, endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT, type OverlayPosition, type SceneSettings } from "./scene";
 import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
@@ -199,12 +200,28 @@ function drawPath(
   context.stroke();
 }
 
+function drawHeatPath(context: CanvasRenderingContext2D, points: TrackPoint[], colors: string[], camera: Camera, width: number, height: number, lineWidth: number) {
+  context.lineWidth = lineWidth;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  for (let index = 1; index < points.length; index += 1) {
+    const start = screenPoint(points[index - 1], camera, width, height);
+    const end = screenPoint(points[index], camera, width, height);
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.strokeStyle = colors[Math.min(colors.length - 1, index - 1)] ?? "#d8ff52";
+    context.stroke();
+  }
+}
+
 function drawFrame(
   context: CanvasRenderingContext2D,
   track: Track,
   settings: SceneSettings,
   images: Map<string, HTMLImageElement>,
   imageOverlay: HTMLImageElement | null,
+  heatColors: string[],
   progress: number,
   width: number,
   height: number,
@@ -224,14 +241,15 @@ function drawFrame(
 
   const scale = Math.max(1, Math.min(width, height) / 720);
   drawPath(context, track.points, camera, width, height, "rgba(38,44,50,.7)", 10 * scale);
-  drawPath(context, sample.path, camera, width, height, settings.lineColor, 11 * scale);
+  if (settings.routeStyle === "heat") drawHeatPath(context, sample.path, heatColors, camera, width, height, 11 * scale);
+  else drawPath(context, sample.path, camera, width, height, settings.lineColor, 11 * scale);
   const marker = screenPoint(sample.point, camera, width, height);
   context.beginPath();
   context.arc(marker.x, marker.y, 9 * scale, 0, Math.PI * 2);
   context.fillStyle = "#ffffff";
   context.fill();
   context.lineWidth = 5 * scale;
-  context.strokeStyle = settings.lineColor;
+  context.strokeStyle = settings.routeStyle === "heat" ? heatColors[Math.max(0, sample.path.length - 2)] ?? settings.heatHighColor : settings.lineColor;
   context.stroke();
   context.restore();
 
@@ -245,6 +263,8 @@ function drawFrame(
   bottomGradient.addColorStop(1, "rgba(0,0,0,.82)");
   context.fillStyle = bottomGradient;
   context.fillRect(0, height * 0.7, width, height * 0.3);
+
+  if (settings.routeStyle === "heat") drawHeatLegend(context, settings, width, scale);
 
   const padding = 46 * scale;
   if (settings.showWatermark) {
@@ -310,6 +330,30 @@ function drawFrame(
   context.textAlign = "left";
 
   drawBrandOutro(context, progress, settings.duration, width, height, settings.lineColor);
+}
+
+function drawHeatLegend(context: CanvasRenderingContext2D, settings: SceneSettings, width: number, scale: number) {
+  const barWidth = 170 * scale;
+  const barHeight = 9 * scale;
+  const x = width - 46 * scale - barWidth;
+  const y = 46 * scale;
+  const labels = heatLegendLabels(settings.heatMetric);
+  const gradient = context.createLinearGradient(x, 0, x + barWidth, 0);
+  gradient.addColorStop(0, settings.heatLowColor);
+  gradient.addColorStop(1, settings.heatHighColor);
+  context.fillStyle = "rgba(0,0,0,.48)";
+  roundedRect(context, x - 13 * scale, y - 24 * scale, barWidth + 26 * scale, 57 * scale, 11 * scale);
+  context.fill();
+  context.fillStyle = gradient;
+  roundedRect(context, x, y + 6 * scale, barWidth, barHeight, barHeight / 2);
+  context.fill();
+  context.font = `700 ${9 * scale}px Arial`;
+  context.fillStyle = "rgba(255,255,255,.7)";
+  context.textAlign = "left";
+  context.fillText(labels.low.toUpperCase(), x, y);
+  context.textAlign = "right";
+  context.fillText(labels.high.toUpperCase(), x + barWidth, y);
+  context.textAlign = "left";
 }
 
 function drawBrandOutro(
@@ -431,8 +475,9 @@ export async function renderRouteVideo(
   onProgress({ phase: "preparing", progress: 0 });
   const images = await preloadTiles(track, settings, width, height, signal, onProgress);
   const imageOverlay = settings.imageOverlaySrc ? await loadImage(settings.imageOverlaySrc, signal) : null;
+  const heatColors = segmentHeatColors(track, settings.heatMetric, settings.heatLowColor, settings.heatHighColor);
   if (signal.aborted) throw new DOMException("Rendering cancelled", "AbortError");
-  drawFrame(context, track, settings, images, imageOverlay, 0, width, height);
+  drawFrame(context, track, settings, images, imageOverlay, heatColors, 0, width, height);
 
   const stream = canvas.captureStream(FRAME_RATE);
   const recorder = new MediaRecorder(stream, {
@@ -458,7 +503,7 @@ export async function renderRouteVideo(
           return;
         }
         const progress = Math.min(1, (now - startedAt) / (settings.duration * 1_000));
-        drawFrame(context, track, settings, images, imageOverlay, progress, width, height);
+        drawFrame(context, track, settings, images, imageOverlay, heatColors, progress, width, height);
         onProgress({ phase: "recording", progress });
         if (progress >= 1) resolve();
         else window.requestAnimationFrame(render);

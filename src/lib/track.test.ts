@@ -4,6 +4,7 @@ import { activityMetrics } from "./activity-metrics";
 import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
+import { heatLegendLabels, segmentHeatColors } from "./heat-map";
 import { brandOutroProgress, endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT } from "./scene";
 import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
@@ -129,5 +130,16 @@ describe("track utilities", () => {
     expect(brandOutroProgress(0.89, 18)).toBe(0);
     expect(brandOutroProgress(0.95, 18)).toBeGreaterThan(0);
     expect(brandOutroProgress(1, 18)).toBe(1);
+  });
+
+  it("maps faster pace and higher elevation to the high heat color", () => {
+    const heatTrack = buildTrack("Heat", "running", [
+      { latitude: 35, longitude: 139, elevation: 10, time: "2026-01-01T00:00:00Z" },
+      { latitude: 35.001, longitude: 139, elevation: 20, time: "2026-01-01T00:01:00Z" },
+      { latitude: 35.002, longitude: 139, elevation: 40, time: "2026-01-01T00:01:20Z" },
+    ]);
+    expect(segmentHeatColors(heatTrack, "pace", "#0000ff", "#ff0000")).toEqual(["#0000ff", "#ff0000"]);
+    expect(segmentHeatColors(heatTrack, "elevation", "#0000ff", "#ff0000")).toEqual(["#0000ff", "#ff0000"]);
+    expect(heatLegendLabels("pace")).toEqual({ low: "Slower", high: "Faster" });
   });
 });

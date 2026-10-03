@@ -29,7 +29,8 @@ import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
 import { activityMetrics } from "@/lib/activity-metrics";
-import { aspectRatio, brandOutroProgress, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, WATERMARK_TEXT, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
+import { aspectRatio, brandOutroProgress, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, WATERMARK_TEXT, type Aspect, type CameraMode, type HeatMetric, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition, type RouteStyle } from "@/lib/scene";
+import { heatLegendLabels } from "@/lib/heat-map";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
@@ -68,6 +69,10 @@ export function Studio() {
   const [forwardUp, setForwardUp] = useState(false);
   const [overviewAutoFit, setOverviewAutoFit] = useState(false);
   const [lineColor, setLineColor] = useState("#d8ff52");
+  const [routeStyle, setRouteStyle] = useState<RouteStyle>("solid");
+  const [heatMetric, setHeatMetric] = useState<HeatMetric>("pace");
+  const [heatLowColor, setHeatLowColor] = useState("#3b82f6");
+  const [heatHighColor, setHeatHighColor] = useState("#ef4444");
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
   const [showWatermark, setShowWatermark] = useState(true);
@@ -114,6 +119,10 @@ export function Studio() {
         setForwardUp(settings.forwardUp ?? false);
         setOverviewAutoFit(settings.overviewAutoFit ?? false);
         setLineColor(settings.lineColor);
+        setRouteStyle(settings.routeStyle ?? "solid");
+        setHeatMetric(settings.heatMetric ?? "pace");
+        setHeatLowColor(settings.heatLowColor ?? "#3b82f6");
+        setHeatHighColor(settings.heatHighColor ?? "#ef4444");
         setAspect(settings.aspect);
         setMapStyle(settings.mapStyle);
         setShowWatermark(settings.showWatermark ?? true);
@@ -136,8 +145,8 @@ export function Studio() {
 
   useEffect(() => {
     if (!settingsLoaded) return;
-    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale });
-  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale]);
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale });
+  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale]);
 
   useEffect(() => () => renderAbortRef.current?.abort(), []);
 
@@ -276,7 +285,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale, imageOverlaySrc: overlayImage?.src },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -414,7 +423,13 @@ export function Studio() {
               className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
               style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
             >
-              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} mapStyle={mapStyle} />
+              <RouteMap track={track} progress={progress} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} routeStyle={routeStyle} heatMetric={heatMetric} heatLowColor={heatLowColor} heatHighColor={heatHighColor} mapStyle={mapStyle} />
+              {routeStyle === "heat" && (
+                <div data-testid="heat-legend" className="pointer-events-none absolute bottom-14 left-1/2 z-[500] w-32 -translate-x-1/2 rounded-lg border border-white/12 bg-black/55 px-2.5 py-2 shadow-lg backdrop-blur-md sm:bottom-16 sm:w-40">
+                  <div className="mb-1.5 flex justify-between text-[8px] font-bold uppercase tracking-[0.12em] text-white/65"><span>{heatLegendLabels(heatMetric).low}</span><span>{heatLegendLabels(heatMetric).high}</span></div>
+                  <div className="h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${heatLowColor}, ${heatHighColor})` }} />
+                </div>
+              )}
               {showMetricCard && !!metricFields.length && (
                 <div data-testid="video-metrics-overlay" data-layout={metricLayout} className={`pointer-events-none absolute z-[500] rounded-xl border border-white/12 bg-black/45 p-2.5 shadow-xl backdrop-blur-md ${overlayPositionClass[metricPosition]}`} style={{ minWidth: `${96 * metricScale}px` }}>
                   <div className={metricLayout === "grid" ? "grid grid-cols-2 gap-x-5 gap-y-2.5" : "space-y-2.5"}>
@@ -616,12 +631,27 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Route color</label>
-              <div className="flex gap-2">
-                {["#d8ff52", "#ff6b45", "#6bdcff", "#f7f7f2"].map((color) => (
-                  <button key={color} onClick={() => setLineColor(color)} aria-label={`Use route color ${color}`} className={`h-8 flex-1 rounded-lg border transition ${lineColor === color ? "border-white/70 scale-[1.03]" : "border-white/8"}`} style={{ background: color }} />
-                ))}
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Route style</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["solid", "heat"] as RouteStyle[]).map((style) => <button key={style} data-testid={`route-style-${style}`} onClick={() => setRouteStyle(style)} aria-pressed={routeStyle === style} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold capitalize transition ${routeStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>{style === "heat" ? "Heat map" : "Solid"}</button>)}
               </div>
+              {routeStyle === "solid" ? (
+                <div className="mt-3 flex gap-2">
+                  {["#d8ff52", "#ff6b45", "#6bdcff", "#f7f7f2"].map((color) => (
+                    <button key={color} onClick={() => setLineColor(color)} aria-label={`Use route color ${color}`} className={`h-8 flex-1 rounded-lg border transition ${lineColor === color ? "scale-[1.03] border-white/70" : "border-white/8"}`} style={{ background: color }} />
+                  ))}
+                </div>
+              ) : (
+                <div data-testid="heat-controls" className="mt-3 rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["pace", "elevation"] as HeatMetric[]).map((metric) => <button key={metric} onClick={() => setHeatMetric(metric)} aria-pressed={heatMetric === metric} className={`rounded-md border px-2 py-1.5 text-[9px] font-semibold capitalize ${heatMetric === metric ? "border-white/25 bg-white/10 text-white" : "border-white/7 text-[#77838f]"}`}>{metric}</button>)}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">{heatLegendLabels(heatMetric).low}<input aria-label="Heat map low color" type="color" value={heatLowColor} onChange={(event) => setHeatLowColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
+                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">{heatLegendLabels(heatMetric).high}<input aria-label="Heat map high color" type="color" value={heatHighColor} onChange={(event) => setHeatHighColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">

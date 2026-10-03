@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CircleMarker,
   Map as LeafletMap,
@@ -11,7 +11,8 @@ import type {
 import type { Track, TrackPoint } from "@/lib/track";
 import { headingAtProgress, sampleTrackAtProgress } from "@/lib/track";
 import { mapTileLayers, type MapStyle } from "@/lib/map-styles";
-import { endRevealProgress, type CameraMode } from "@/lib/scene";
+import { segmentHeatColors } from "@/lib/heat-map";
+import { endRevealProgress, type CameraMode, type HeatMetric, type RouteStyle } from "@/lib/scene";
 
 export type { CameraMode } from "@/lib/scene";
 
@@ -24,6 +25,10 @@ type Props = {
   forwardUp: boolean;
   overviewAutoFit: boolean;
   lineColor: string;
+  routeStyle: RouteStyle;
+  heatMetric: HeatMetric;
+  heatLowColor: string;
+  heatHighColor: string;
   mapStyle: MapStyle;
 };
 
@@ -31,18 +36,26 @@ function toLatLng(point: TrackPoint): [number, number] {
   return [point.latitude, point.longitude];
 }
 
-export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, mapStyle }: Props) {
+export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, mapStyle }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
+  const progressRef = useRef(progress);
   const tileLayersRef = useRef<TileLayer[]>([]);
   const fullRouteRef = useRef<LeafletPolyline | null>(null);
   const activeRouteRef = useRef<LeafletPolyline | null>(null);
+  const heatSegmentsRef = useRef<LeafletPolyline[]>([]);
+  const visibleHeatSegmentsRef = useRef(0);
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress);
   const displayedPitch = pitch * (1 - reveal);
   const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
+  const heatColors = useMemo(() => segmentHeatColors(track, heatMetric, heatLowColor, heatHighColor), [track, heatMetric, heatLowColor, heatHighColor]);
+
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -94,6 +107,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
       tileLayersRef.current = [];
       fullRouteRef.current = null;
       activeRouteRef.current = null;
+      heatSegmentsRef.current = [];
       markerRef.current = null;
     };
   }, []);
@@ -129,6 +143,39 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
 
   useEffect(() => {
     const map = mapRef.current;
+    const activeRoute = activeRouteRef.current;
+    if (!map || !activeRoute) return;
+    let disposed = false;
+    heatSegmentsRef.current.forEach((segment) => segment.remove());
+    heatSegmentsRef.current = [];
+    visibleHeatSegmentsRef.current = 0;
+    activeRoute.setStyle({ opacity: routeStyle === "solid" ? 1 : 0 });
+    if (routeStyle !== "heat") return;
+
+    void import("leaflet").then(({ default: L }) => {
+      if (disposed || !mapRef.current) return;
+      const currentProgress = progressRef.current;
+      const visibleCount = currentProgress <= 0 ? 0 : Math.min(track.points.length - 1, sampleTrackAtProgress(track, currentProgress).path.length - 1);
+      heatSegmentsRef.current = track.points.slice(1).map((point, index) => L.polyline([toLatLng(track.points[index]), toLatLng(point)], {
+        color: heatColors[index],
+        opacity: index < visibleCount ? 1 : 0,
+        weight: 7,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map));
+      visibleHeatSegmentsRef.current = visibleCount;
+    });
+
+    return () => {
+      disposed = true;
+      heatSegmentsRef.current.forEach((segment) => segment.remove());
+      heatSegmentsRef.current = [];
+      visibleHeatSegmentsRef.current = 0;
+    };
+  }, [track, routeStyle, heatColors, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     const fullRoute = fullRouteRef.current;
     if (!map || !fullRoute) return;
 
@@ -148,9 +195,19 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
     const sample = sampleTrackAtProgress(track, progress);
     const markerPosition = toLatLng(sample.point);
     activeRoute.setLatLngs(sample.path.map(toLatLng));
-    activeRoute.setStyle({ color: lineColor });
+    activeRoute.setStyle({ color: lineColor, opacity: routeStyle === "solid" ? 1 : 0 });
     marker.setLatLng(markerPosition);
-    marker.setStyle({ color: lineColor });
+    const visibleHeatCount = progress <= 0 ? 0 : Math.min(heatSegmentsRef.current.length, sample.path.length - 1);
+    const previousVisibleHeatCount = visibleHeatSegmentsRef.current;
+    if (routeStyle === "heat" && visibleHeatCount !== previousVisibleHeatCount) {
+      if (visibleHeatCount > previousVisibleHeatCount) {
+        for (let index = previousVisibleHeatCount; index < visibleHeatCount; index += 1) heatSegmentsRef.current[index]?.setStyle({ opacity: 1 });
+      } else {
+        for (let index = visibleHeatCount; index < previousVisibleHeatCount; index += 1) heatSegmentsRef.current[index]?.setStyle({ opacity: 0 });
+      }
+      visibleHeatSegmentsRef.current = visibleHeatCount;
+    }
+    marker.setStyle({ color: routeStyle === "heat" ? heatColors[Math.max(0, visibleHeatCount - 1)] ?? heatHighColor : lineColor });
 
     if (cameraMode !== "overview" && !isInteracting) {
       const bounds = fullRouteRef.current?.getBounds();
@@ -167,7 +224,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
         : markerPosition;
       map.setView(center, cameraZoom + (fittedZoom - cameraZoom) * endReveal, { animate: false });
     }
-  }, [track, progress, cameraMode, cameraZoom, lineColor, mapReady, isInteracting]);
+  }, [track, progress, cameraMode, cameraZoom, lineColor, routeStyle, heatColors, heatHighColor, mapReady, isInteracting]);
 
   useEffect(() => {
     const map = mapRef.current;
