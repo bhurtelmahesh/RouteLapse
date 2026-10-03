@@ -29,7 +29,7 @@ import { importActivityFiles } from "@/lib/activity-import";
 import { loadProjectSettings, saveProjectSettings } from "@/lib/project-settings";
 import type { MapStyle } from "@/lib/map-styles";
 import { activityMetrics } from "@/lib/activity-metrics";
-import { aspectRatio, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
+import { aspectRatio, imagePositionCoordinates, imagePositionLabels, metricLabels, overlayPositionLabels, WATERMARK_TEXT, type Aspect, type CameraMode, type ImagePosition, type MetricKey, type MetricLayout, type OverlayPosition } from "@/lib/scene";
 import { demoTrack, formatDistance, formatDuration, type Track } from "@/lib/track";
 import { renderRouteVideo, videoFileName, type RenderProgress } from "@/lib/video-renderer";
 import { ActivityProfile } from "./activity-profile";
@@ -70,6 +70,7 @@ export function Studio() {
   const [lineColor, setLineColor] = useState("#d8ff52");
   const [mapStyle, setMapStyle] = useState<MapStyle>("hybrid");
   const [aspect, setAspect] = useState<Aspect>("16:9");
+  const [showWatermark, setShowWatermark] = useState(true);
   const [showMetricCard, setShowMetricCard] = useState(true);
   const [metricFields, setMetricFields] = useState<MetricKey[]>(["distance", "elapsed", "pace"]);
   const [metricLayout, setMetricLayout] = useState<MetricLayout>("vertical");
@@ -114,6 +115,7 @@ export function Studio() {
         setLineColor(settings.lineColor);
         setAspect(settings.aspect);
         setMapStyle(settings.mapStyle);
+        setShowWatermark(settings.showWatermark ?? true);
         setShowMetricCard(settings.showMetricCard ?? true);
         setMetricFields(settings.metricFields ?? ["distance", "elapsed", "pace"]);
         setMetricLayout(settings.metricLayout ?? "vertical");
@@ -133,8 +135,8 @@ export function Studio() {
 
   useEffect(() => {
     if (!settingsLoaded) return;
-    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale });
-  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale]);
+    saveProjectSettings({ duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale });
+  }, [settingsLoaded, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale]);
 
   useEffect(() => () => renderAbortRef.current?.abort(), []);
 
@@ -273,7 +275,7 @@ export function Studio() {
       const output = await renderRouteVideo(
         renderCanvasRef.current,
         track,
-        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale, imageOverlaySrc: overlayImage?.src },
+        { duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, aspect, mapStyle, showWatermark, showMetricCard, metricFields, metricLayout, metricScale, metricPosition, imagePosition, imageX, imageY, imageScale, imageOverlaySrc: overlayImage?.src },
         controller.signal,
         setRenderProgress,
       );
@@ -441,13 +443,12 @@ export function Studio() {
               )}
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/65 to-transparent p-4 sm:p-6">
                 <div>
-                  <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#d8ff52]">RouteLapse original</div>
-                  <div className="mt-1 max-w-[300px] truncate text-lg font-semibold tracking-tight sm:text-2xl">{track.name}</div>
+                  {showWatermark && <div data-testid="website-watermark" className="font-mono text-[9px] font-bold tracking-[0.12em] text-[#d8ff52]">{WATERMARK_TEXT}</div>}
+                  <div className={`${showWatermark ? "mt-1" : ""} max-w-[300px] truncate text-lg font-semibold tracking-tight sm:text-2xl`}>{track.name}</div>
                 </div>
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 sm:p-6 sm:pt-16">
                 <div className="text-[10px] text-white/60">{Math.round(progress * 100)}% complete</div>
-                <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55"><Sparkles size={11} className="text-[#d8ff52]" /> cinematic preview</div>
               </div>
             </div>
           </div>
@@ -610,6 +611,12 @@ export function Studio() {
                   <button key={color} onClick={() => setLineColor(color)} aria-label={`Use route color ${color}`} className={`h-8 flex-1 rounded-lg border transition ${lineColor === color ? "border-white/70 scale-[1.03]" : "border-white/8"}`} style={{ background: color }} />
                 ))}
               </div>
+            </div>
+
+            <div className="mt-5 sm:mt-0 lg:mt-5">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Branding</label>
+              <button data-testid="watermark-toggle" onClick={() => setShowWatermark((value) => !value)} aria-pressed={showWatermark} className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[10px] font-semibold transition ${showWatermark ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}><span>Website watermark</span><span>{showWatermark ? "Visible" : "Hidden"}</span></button>
+              <p className="mt-2 font-mono text-[9px] text-[#616d77]">{WATERMARK_TEXT}</p>
             </div>
 
             <div className="mt-5 rounded-xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-3 sm:mt-0 lg:mt-5">

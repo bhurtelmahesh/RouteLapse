@@ -6,6 +6,7 @@ export type MetricKey = "distance" | "elapsed" | "pace" | "elevation";
 export type MetricLayout = "vertical" | "grid";
 export type OverlayPosition = "top-left" | "top-right" | "center-left" | "center-right" | "bottom-left" | "bottom-right";
 export type ImagePosition = OverlayPosition | "center" | "custom";
+export const WATERMARK_TEXT = "routelapse.web.app";
 
 export type SceneSettings = {
   duration: number;
@@ -17,6 +18,7 @@ export type SceneSettings = {
   lineColor: string;
   aspect: Aspect;
   mapStyle: MapStyle;
+  showWatermark: boolean;
   showMetricCard: boolean;
   metricFields: MetricKey[];
   metricLayout: MetricLayout;

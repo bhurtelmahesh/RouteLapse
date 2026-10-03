@@ -20,6 +20,7 @@ Live app: [routelapse.web.app](https://routelapse.web.app/)
 - Optional distance, time, pace, and elevation card with six positions, vertical/grid layouts, and adjustable text size
 - Automatic centered full-route reveal at the end of Follow and Cinematic videos
 - Transparent Strava-style PNG/WebP overlays with drag positioning, center preset, X/Y controls, and dynamic sizing
+- Optional `routelapse.web.app` watermark in the original RouteLapse title position
 - Local Full HD MP4 rendering in Chrome with WebM fallback
 - Verified 1080p landscape, 1080×1920 portrait, and 1080p square output
 - Local project-setting persistence

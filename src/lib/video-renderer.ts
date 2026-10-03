@@ -1,6 +1,6 @@
 import { mapTileLayers, tileUrl, type MapTileLayer } from "./map-styles";
 import { activityMetrics } from "./activity-metrics";
-import { endRevealProgress, imagePositionCoordinates, renderResolution, type OverlayPosition, type SceneSettings } from "./scene";
+import { endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT, type OverlayPosition, type SceneSettings } from "./scene";
 import { headingAtProgress, sampleTrackAtProgress, type Track, type TrackPoint } from "./track";
 
 type WorldPoint = { x: number; y: number };
@@ -247,12 +247,14 @@ function drawFrame(
   context.fillRect(0, height * 0.7, width, height * 0.3);
 
   const padding = 46 * scale;
-  context.fillStyle = settings.lineColor;
-  context.font = `700 ${13 * scale}px Arial`;
-  context.fillText("ROUTELAPSE ORIGINAL", padding, padding);
+  if (settings.showWatermark) {
+    context.fillStyle = settings.lineColor;
+    context.font = `700 ${13 * scale}px monospace`;
+    context.fillText(WATERMARK_TEXT, padding, padding);
+  }
   context.fillStyle = "#ffffff";
   context.font = `700 ${31 * scale}px Arial`;
-  context.fillText(track.name.slice(0, 52), padding, padding + 40 * scale);
+  context.fillText(track.name.slice(0, 52), padding, padding + (settings.showWatermark ? 40 * scale : 0));
   context.textAlign = "right";
   context.font = `600 ${12 * scale}px Arial`;
   context.fillStyle = "rgba(255,255,255,.68)";

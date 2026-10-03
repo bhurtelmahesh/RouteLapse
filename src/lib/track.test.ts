@@ -4,7 +4,7 @@ import { activityMetrics } from "./activity-metrics";
 import { parseActivityArchive } from "./activity-import";
 import { parseGpx } from "./gpx";
 import { parseTcx } from "./tcx";
-import { endRevealProgress, imagePositionCoordinates, renderResolution } from "./scene";
+import { endRevealProgress, imagePositionCoordinates, renderResolution, WATERMARK_TEXT } from "./scene";
 import { buildTrack, buildTrackProfile, demoTrack, distanceBetween, formatDuration, headingAtProgress, sampleTrackAtProgress } from "./track";
 
 describe("track utilities", () => {
@@ -119,5 +119,9 @@ describe("track utilities", () => {
   it("includes a centered transparent-image preset", () => {
     expect(imagePositionCoordinates("center")).toEqual({ x: 50, y: 50 });
     expect(imagePositionCoordinates("bottom-right")).toEqual({ x: 82, y: 78 });
+  });
+
+  it("uses the production website for optional watermark branding", () => {
+    expect(WATERMARK_TEXT).toBe("routelapse.web.app");
   });
 });

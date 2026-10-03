@@ -19,7 +19,7 @@ const steps = [
   { icon: Camera, title: "Direct the camera", body: "Choose Overview, Follow, or Cinematic. Set pitch and zoom, optionally fit the whole route, or enable Forward-up to rotate the map beneath a fixed frame." },
   { icon: Gauge, title: "Design the metrics", body: "Show or hide the built-in card, choose its fields, select Vertical or Grid, adjust text size, and place it in any of six positions." },
   { icon: ImagePlus, title: "Add a transparent overlay", body: "Import a transparent PNG or WebP—such as a Strava-style metrics card—then drag, resize, center, or position it independently from RouteLapse metrics." },
-  { icon: Download, title: "Render and download", body: "Choose 16:9, 9:16, or 1:1 and select Render HD video. Keep the tab open until the MP4 or WebM download is ready." },
+  { icon: Download, title: "Render and download", body: "Choose 16:9, 9:16, or 1:1, decide whether to show the routelapse.web.app watermark, and select Render HD video. Keep the tab open until the MP4 or WebM download is ready." },
 ];
 
 const cameraRows = [
