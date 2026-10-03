@@ -201,7 +201,7 @@ export function RouteMap({ track, progress, cameraMode, pitch, cameraZoom, forwa
           transformOrigin: "50% 58%",
         }}
       />
-      <div className="absolute left-3 top-3 z-[550] grid overflow-hidden rounded-lg border border-white/15 bg-[#090d12]/90 shadow-lg backdrop-blur-sm">
+      <div className="absolute right-3 top-3 z-[550] grid overflow-hidden rounded-lg border border-white/15 bg-[#090d12]/90 shadow-lg backdrop-blur-sm">
         <button type="button" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn(0.5)} className="grid h-8 w-8 place-items-center border-b border-white/12 text-lg font-medium leading-none text-white transition hover:bg-white/10">+</button>
         <button type="button" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut(0.5)} className="grid h-8 w-8 place-items-center text-lg font-medium leading-none text-white transition hover:bg-white/10">−</button>
       </div>
