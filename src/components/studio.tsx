@@ -310,14 +310,14 @@ export function Studio() {
   const compressed = activityMinutes ? Math.max(1, Math.round((activityMinutes * 60) / duration)) : 1;
 
   return (
-    <main className="min-h-screen bg-[#080b0f] text-[#f4f7f8]">
+    <div id="editor" className="min-h-screen scroll-mt-4 bg-[#080b0f] text-[#f4f7f8]">
       <header className="flex h-16 items-center justify-between border-b border-white/8 px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#d8ff52] text-[#0c1003] shadow-[0_0_28px_rgba(216,255,82,0.2)]">
             <Route size={20} strokeWidth={2.4} />
           </div>
           <div>
-            <h1 className="text-[15px] font-bold tracking-[-0.02em]">RouteLapse</h1>
+            <div className="text-[15px] font-bold tracking-[-0.02em]">RouteLapse</div>
             <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#77838e]">Motion from movement</div>
           </div>
         </div>
@@ -688,6 +688,6 @@ export function Studio() {
           </div>
         </aside>
       </div>
-    </main>
+    </div>
   );
 }

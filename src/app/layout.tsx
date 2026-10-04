@@ -20,23 +20,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "RouteLapse — Create Cinematic Running Route Videos",
+    default: "Free Running & Walking Route Video Maker | RouteLapse",
     template: "%s | RouteLapse",
   },
   description:
-    "Turn GPX running routes into cinematic HD map videos with pace and elevation heat maps. Customize the camera, timing, overlays, and aspect ratio in your browser.",
+    "Turn running, walking, hiking, and cycling routes into animated HD videos. Import GPX or TCX, use satellite maps and heat maps, and export free in your browser.",
   applicationName: "RouteLapse",
-  keywords: [
-    "GPX video maker",
-    "running route video",
-    "Strava route animation",
-    "GPS route animation",
-    "map animation maker",
-    "route video generator",
-    "running heat map video",
-    "pace heat map",
-    "elevation route map",
-  ],
   authors: [{ name: "RouteLapse" }],
   creator: "RouteLapse",
   publisher: "RouteLapse",
@@ -46,15 +35,15 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "RouteLapse",
-    title: "RouteLapse — Create Cinematic Running Route Videos",
+    title: "Free Running & Walking Route Video Maker | RouteLapse",
     description:
-      "Create cinematic GPX route videos with animated pace and elevation heat maps, custom cameras, overlays, and Full HD export.",
+      "Turn a run, walk, hike, or ride into a cinematic HD route video with satellite maps, metrics, and pace or elevation heat maps.",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "RouteLapse cinematic GPX route videos with pace and elevation heat maps" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "RouteLapse — Create Cinematic Running Route Videos",
-    description: "Create cinematic GPX route videos with animated pace and elevation heat maps and Full HD export.",
+    title: "Free Running & Walking Route Video Maker | RouteLapse",
+    description: "Turn running, walking, hiking, and cycling routes into cinematic GPX map videos with free HD export.",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -92,10 +81,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     operatingSystem: "Any",
     browserRequirements: "Requires a modern web browser with JavaScript enabled.",
     description:
-      "A privacy-first web app for turning GPX running routes into cinematic Full HD map videos with pace and elevation heat maps.",
+      "A free, privacy-first route video maker for turning GPX and TCX runs, walks, hikes, and rides into animated Full HD map videos.",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     featureList: [
-      "Import GPX running routes",
+      "Import GPX and TCX runs, walks, hikes, and rides",
       "Animate routes on an interactive map",
       "Visualize pace and elevation as animated route heat maps",
       "Customize camera angle and video timing",
