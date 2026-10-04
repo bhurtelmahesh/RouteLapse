@@ -256,7 +256,8 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
     marker.setStyle({ color: routeStyle === "heat" ? heatColors[Math.max(0, visibleHeatCount - 1)] ?? heatHighColor : lineColor });
 
     if (cameraMode !== "overview" && !isInteracting) {
-      const bounds = fullRouteRef.current?.getBounds();
+      const candidateBounds = fullRouteRef.current?.getBounds();
+      const bounds = candidateBounds?.isValid() ? candidateBounds : null;
       const routeCenter = bounds?.getCenter();
       const mapSize = map.getSize();
       const visibleWidth = frameSize.width || mapSize.x;
