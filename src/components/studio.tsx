@@ -432,8 +432,8 @@ export function Studio() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-white/7 bg-white/[0.018] p-3 text-[10px] leading-4 text-[#6f7b86]">
-            <div className="mb-1 flex items-center gap-2 font-semibold text-[#9ba5ae]"><WifiOff size={12} /> Privacy-first workspace</div>
+          <div className="mt-4 rounded-xl border border-white/7 bg-white/[0.018] p-3 text-xs leading-5 text-[#94a3b8]">
+            <div className="mb-1 flex items-center gap-2 font-semibold text-[#b4bec7]"><WifiOff size={12} /> Privacy-first workspace</div>
             Files are parsed in this browser and are not uploaded during editing.
           </div>
         </aside>
@@ -442,7 +442,7 @@ export function Studio() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold"><Film size={15} className="text-[#d8ff52]" /> Preview</div>
-              <p className="mt-1 text-[10px] text-[#75818c]">Frame-accurate scene controls arrive with the render engine.</p>
+              <p className="mt-1 text-xs text-[#94a3b8]">Frame-accurate scene controls arrive with the render engine.</p>
             </div>
             <div className="rounded-lg border border-white/8 bg-[#0b0f14]/90 px-2.5 py-1.5 font-mono text-[10px] text-[#8d99a4]">1080p · 30 fps</div>
           </div>
@@ -538,7 +538,7 @@ export function Studio() {
                     setProgress(Number(event.target.value));
                   }}
                 />
-                <div className="mt-1.5 flex justify-between font-mono text-[9px] text-[#67737e]"><span>00:00</span><span>00:{String(duration).padStart(2, "0")}</span></div>
+                <div className="mt-1.5 flex justify-between font-mono text-xs text-[#94a3b8]"><span>00:00</span><span>00:{String(duration).padStart(2, "0")}</span></div>
               </div>
               <button onClick={resetPlayback} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/9 text-[#89949e] transition hover:bg-white/[0.05] hover:text-white" aria-label="Reset preview">
                 <RotateCcw size={14} />
@@ -558,10 +558,10 @@ export function Studio() {
           </div>
           <div className="inspector-content">
             <div>
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Camera</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Camera</label>
               <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#111720] p-1">
                 {(["overview", "follow", "cinematic"] as CameraMode[]).map((mode) => (
-                  <button key={mode} onClick={() => setCameraMode(mode)} className={`rounded-lg px-2 py-2 text-[10px] font-semibold capitalize transition ${cameraMode === mode ? "bg-white/10 text-white" : "text-[#6f7c87] hover:text-white"}`}>
+                  <button key={mode} onClick={() => setCameraMode(mode)} className={`rounded-lg px-2 py-2 text-xs font-semibold capitalize transition ${cameraMode === mode ? "bg-white/10 text-white" : "text-[#9aa6b2] hover:text-white"}`}>
                     {mode}
                   </button>
                 ))}
@@ -569,32 +569,32 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]"><label htmlFor="duration">Video duration</label><span className="font-mono text-[#d8ff52]">{duration}s</span></div>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]"><label htmlFor="duration">Video duration</label><span className="font-mono text-[#d8ff52]">{duration}s</span></div>
               <input id="duration" className="range-track w-full" type="range" min="8" max="60" step="1" value={duration} onChange={(event) => setDuration(Number(event.target.value))} />
-              <div className="mt-2 text-[10px] text-[#697580]">About {compressed}× real-time compression</div>
+              <div className="mt-2 text-xs text-[#94a3b8]">About {compressed}× real-time compression</div>
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]"><label htmlFor="pitch">Camera pitch</label><span className="font-mono text-[#d8ff52]">{pitch}°</span></div>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]"><label htmlFor="pitch">Camera pitch</label><span className="font-mono text-[#d8ff52]">{pitch}°</span></div>
               <input id="pitch" className="range-track w-full" type="range" min="0" max="60" step="1" value={pitch} onChange={(event) => setPitch(Number(event.target.value))} disabled={cameraMode === "overview"} />
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]"><label htmlFor="camera-zoom">Camera zoom</label><span className="font-mono text-[#d8ff52]">Level {cameraZoom.toFixed(1)}</span></div>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]"><label htmlFor="camera-zoom">Camera zoom</label><span className="font-mono text-[#d8ff52]">Level {cameraZoom.toFixed(1)}</span></div>
               <input id="camera-zoom" aria-label="Camera zoom" className="range-track w-full" type="range" min="12" max="18" step="0.5" value={cameraZoom} onChange={(event) => setCameraZoom(Number(event.target.value))} />
-              <div className="mt-2 text-[10px] text-[#697580]">Sets detail in every mode; Follow and Cinematic also track the moving point.</div>
+              <div className="mt-2 text-xs leading-5 text-[#94a3b8]">Sets detail in every mode; Follow and Cinematic also track the moving point.</div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <button onClick={() => setOverviewAutoFit((value) => !value)} aria-pressed={overviewAutoFit} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${overviewAutoFit ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>Fit full route</button>
-                <button onClick={() => setForwardUp((value) => !value)} aria-pressed={forwardUp} disabled={cameraMode === "overview"} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition disabled:opacity-35 ${forwardUp ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>Forward-up map</button>
+                <button onClick={() => setOverviewAutoFit((value) => !value)} aria-pressed={overviewAutoFit} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${overviewAutoFit ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}>Fit full route</button>
+                <button onClick={() => setForwardUp((value) => !value)} aria-pressed={forwardUp} disabled={cameraMode === "overview"} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition disabled:opacity-35 ${forwardUp ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}>Forward-up map</button>
               </div>
-              <div className="mt-2 text-[9px] leading-4 text-[#616d77]">Forward-up rotates the map beneath a fixed video frame; overlays stay level.</div>
+              <div className="mt-2 text-xs leading-5 text-[#94a3b8]">Forward-up rotates the map beneath a fixed video frame; overlays stay level.</div>
             </div>
 
             <div className="mt-5 border-t border-white/8 pt-5 sm:mt-0 sm:border-0 sm:pt-0 lg:mt-5 lg:border-t lg:pt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Canvas</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Canvas</label>
               <div className="grid grid-cols-3 gap-2">
                 {(["16:9", "9:16", "1:1"] as Aspect[]).map((value) => (
-                  <button key={value} onClick={() => setAspect(value)} className={`rounded-lg border px-2 py-2 font-mono text-[10px] transition ${aspect === value ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f] hover:border-white/16"}`}>
+                  <button key={value} onClick={() => setAspect(value)} className={`rounded-lg border px-2 py-2 font-mono text-xs transition ${aspect === value ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2] hover:border-white/16"}`}>
                     {value}
                   </button>
                 ))}
@@ -602,14 +602,14 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Map style</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Map style</label>
               <div className="grid grid-cols-2 gap-2">
                 {(["street", "satellite", "hybrid", "dark"] as MapStyle[]).map((style) => (
                   <button
                     key={style}
                     onClick={() => setMapStyle(style)}
                     aria-pressed={mapStyle === style}
-                    className={`rounded-lg border px-3 py-2 text-[10px] font-semibold capitalize transition ${mapStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f] hover:border-white/16 hover:text-white"}`}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition ${mapStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2] hover:border-white/16 hover:text-white"}`}
                   >
                     {style}
                   </button>
@@ -618,55 +618,55 @@ export function Studio() {
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Video metrics</label>
-              <button data-testid="metric-card-toggle" onClick={() => setShowMetricCard((value) => !value)} aria-pressed={showMetricCard} className={`mb-2 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[10px] font-semibold transition ${showMetricCard ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}><span>Metrics card</span><span>{showMetricCard ? "Visible" : "Hidden"}</span></button>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Video metrics</label>
+              <button data-testid="metric-card-toggle" onClick={() => setShowMetricCard((value) => !value)} aria-pressed={showMetricCard} className={`mb-2 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-semibold transition ${showMetricCard ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}><span>Metrics card</span><span>{showMetricCard ? "Visible" : "Hidden"}</span></button>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(metricLabels) as MetricKey[]).map((metric) => {
                   const selected = metricFields.includes(metric);
                   return (
-                    <button key={metric} onClick={() => setMetricFields((current) => selected ? current.filter((value) => value !== metric) : [...current, metric])} aria-pressed={selected} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${selected ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f] hover:border-white/16"}`}>
+                    <button key={metric} onClick={() => setMetricFields((current) => selected ? current.filter((value) => value !== metric) : [...current, metric])} aria-pressed={selected} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${selected ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2] hover:border-white/16"}`}>
                       {metricLabels[metric]}
                     </button>
                   );
                 })}
               </div>
-              <select value={metricPosition} onChange={(event) => setMetricPosition(event.target.value as OverlayPosition)} aria-label="Metric position" className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-[10px] text-white">
+              <select value={metricPosition} onChange={(event) => setMetricPosition(event.target.value as OverlayPosition)} aria-label="Metric position" className="mt-2 w-full rounded-lg border border-white/10 bg-[#10151c] px-3 py-2 text-xs text-white">
                 {(Object.keys(overlayPositionLabels) as OverlayPosition[]).map((position) => <option key={position} value={position}>{overlayPositionLabels[position]}</option>)}
               </select>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {(["vertical", "grid"] as MetricLayout[]).map((layout) => <button key={layout} onClick={() => setMetricLayout(layout)} aria-pressed={metricLayout === layout} className={`rounded-lg border px-2 py-2 text-[10px] font-semibold capitalize transition ${metricLayout === layout ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>{layout}</button>)}
+                {(["vertical", "grid"] as MetricLayout[]).map((layout) => <button key={layout} onClick={() => setMetricLayout(layout)} aria-pressed={metricLayout === layout} className={`rounded-lg border px-2 py-2 text-xs font-semibold capitalize transition ${metricLayout === layout ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}>{layout}</button>)}
               </div>
-              <div className="mt-3 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#77838f]"><label htmlFor="metric-size">Text size</label><span className="font-mono text-[#d8ff52]">{Math.round(metricScale * 100)}%</span></div>
+              <div className="mt-3 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]"><label htmlFor="metric-size">Text size</label><span className="font-mono text-[#d8ff52]">{Math.round(metricScale * 100)}%</span></div>
               <input id="metric-size" aria-label="Metric text size" className="range-track mt-2 w-full" type="range" min="0.8" max="1.6" step="0.1" value={metricScale} onChange={(event) => setMetricScale(Number(event.target.value))} />
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Transparent overlay</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Transparent overlay</label>
               <input ref={overlayInputRef} type="file" accept="image/png,image/webp,.png,.webp" onChange={handleOverlayImage} className="hidden" />
               {overlayImage ? (
                 <div className="rounded-lg border border-white/9 bg-white/[0.025] p-2">
-                  <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-[10px] text-white">{overlayImage.name}</span><button onClick={() => setOverlayImage(null)} aria-label="Remove transparent overlay" className="text-[#7c8790] hover:text-white"><X size={13} /></button></div>
-                  <select value={imagePosition} onChange={(event) => event.target.value !== "custom" && setImagePreset(event.target.value as Exclude<ImagePosition, "custom">)} aria-label="Image overlay position" className="mt-2 w-full rounded-md border border-white/10 bg-[#10151c] px-2 py-1.5 text-[10px] text-white">
+                  <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-xs text-white">{overlayImage.name}</span><button onClick={() => setOverlayImage(null)} aria-label="Remove transparent overlay" className="text-[#9aa6b2] hover:text-white"><X size={13} /></button></div>
+                  <select value={imagePosition} onChange={(event) => event.target.value !== "custom" && setImagePreset(event.target.value as Exclude<ImagePosition, "custom">)} aria-label="Image overlay position" className="mt-2 w-full rounded-md border border-white/10 bg-[#10151c] px-2 py-1.5 text-xs text-white">
                     {(Object.keys(imagePositionLabels) as Array<Exclude<ImagePosition, "custom">>).map((position) => <option key={position} value={position}>{imagePositionLabels[position]}</option>)}
                     <option value="custom" disabled>Custom</option>
                   </select>
-                  <div className="mt-3 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#77838f]"><label htmlFor="image-size">Size</label><span className="font-mono text-[#d8ff52]">{Math.round(imageScale * 100)}%</span></div>
+                  <div className="mt-3 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]"><label htmlFor="image-size">Size</label><span className="font-mono text-[#d8ff52]">{Math.round(imageScale * 100)}%</span></div>
                   <input id="image-size" aria-label="Image overlay size" className="range-track mt-2 w-full" type="range" min="0.1" max="0.8" step="0.01" value={imageScale} onChange={(event) => setImageScale(Number(event.target.value))} />
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">X <input aria-label="Image overlay horizontal position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageX} onChange={(event) => { setImagePosition("custom"); setImageX(Number(event.target.value)); }} /></label>
-                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">Y <input aria-label="Image overlay vertical position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageY} onChange={(event) => { setImagePosition("custom"); setImageY(Number(event.target.value)); }} /></label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">X <input aria-label="Image overlay horizontal position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageX} onChange={(event) => { setImagePosition("custom"); setImageX(Number(event.target.value)); }} /></label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">Y <input aria-label="Image overlay vertical position" className="range-track mt-2 w-full" type="range" min="0" max="100" step="1" value={imageY} onChange={(event) => { setImagePosition("custom"); setImageY(Number(event.target.value)); }} /></label>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => overlayInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/14 px-3 py-2.5 text-[10px] font-semibold text-[#8a959e] transition hover:border-[#d8ff52]/40 hover:text-white"><ImagePlus size={14} /> Add Strava PNG/WebP</button>
+                <button onClick={() => overlayInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/14 px-3 py-2.5 text-xs font-semibold text-[#9aa6b2] transition hover:border-[#d8ff52]/40 hover:text-white"><ImagePlus size={14} /> Add Strava PNG/WebP</button>
               )}
-              <p className="mt-2 text-[9px] leading-4 text-[#616d77]">Use a transparent screenshot or exported metrics card. Drag it directly in the preview or use the size and position controls.</p>
+              <p className="mt-2 text-xs leading-5 text-[#94a3b8]">Use a transparent screenshot or exported metrics card. Drag it directly in the preview or use the size and position controls.</p>
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Route style</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Route style</label>
               <div className="grid grid-cols-2 gap-2">
-                {(["solid", "heat"] as RouteStyle[]).map((style) => <button key={style} data-testid={`route-style-${style}`} onClick={() => setRouteStyle(style)} aria-pressed={routeStyle === style} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold capitalize transition ${routeStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}>{style === "heat" ? "Heat map" : "Solid"}</button>)}
+                {(["solid", "heat"] as RouteStyle[]).map((style) => <button key={style} data-testid={`route-style-${style}`} onClick={() => setRouteStyle(style)} aria-pressed={routeStyle === style} className={`rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition ${routeStyle === style ? "border-[#d8ff52]/50 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}>{style === "heat" ? "Heat map" : "Solid"}</button>)}
               </div>
               {routeStyle === "solid" ? (
                 <div className="mt-3 flex gap-2">
@@ -677,36 +677,36 @@ export function Studio() {
               ) : (
                 <div data-testid="heat-controls" className="mt-3 rounded-lg border border-white/8 bg-white/[0.02] p-2.5">
                   <div className="grid grid-cols-2 gap-2">
-                    {(["pace", "elevation"] as HeatMetric[]).map((metric) => <button key={metric} onClick={() => setHeatMetric(metric)} aria-pressed={heatMetric === metric} className={`rounded-md border px-2 py-1.5 text-[9px] font-semibold capitalize ${heatMetric === metric ? "border-white/25 bg-white/10 text-white" : "border-white/7 text-[#77838f]"}`}>{metric}</button>)}
+                    {(["pace", "elevation"] as HeatMetric[]).map((metric) => <button key={metric} onClick={() => setHeatMetric(metric)} aria-pressed={heatMetric === metric} className={`rounded-md border px-2 py-1.5 text-xs font-semibold capitalize ${heatMetric === metric ? "border-white/25 bg-white/10 text-white" : "border-white/7 text-[#9aa6b2]"}`}>{metric}</button>)}
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">{heatLegendLabels(heatMetric).low}<input aria-label="Heat map low color" type="color" value={heatLowColor} onChange={(event) => setHeatLowColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
-                    <label className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#77838f]">{heatLegendLabels(heatMetric).high}<input aria-label="Heat map high color" type="color" value={heatHighColor} onChange={(event) => setHeatHighColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">{heatLegendLabels(heatMetric).low}<input aria-label="Heat map low color" type="color" value={heatLowColor} onChange={(event) => setHeatLowColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">{heatLegendLabels(heatMetric).high}<input aria-label="Heat map high color" type="color" value={heatHighColor} onChange={(event) => setHeatHighColor(event.target.value)} className="mt-1.5 h-8 w-full cursor-pointer rounded border border-white/10 bg-transparent p-0.5" /></label>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
-              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#77838f]">Branding</label>
-              <button data-testid="watermark-toggle" onClick={() => setShowWatermark((value) => !value)} aria-pressed={showWatermark} className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[10px] font-semibold transition ${showWatermark ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#78848f]"}`}><span>Website watermark</span><span>{showWatermark ? "Visible" : "Hidden"}</span></button>
-              <p className="mt-2 text-[9px] leading-4 text-[#616d77]"><span className="font-mono">{WATERMARK_TEXT}</span> appears in the corner when enabled. The animated RouteLapse outro is always included.</p>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">Branding</label>
+              <button data-testid="watermark-toggle" onClick={() => setShowWatermark((value) => !value)} aria-pressed={showWatermark} className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-semibold transition ${showWatermark ? "border-[#d8ff52]/45 bg-[#d8ff52]/8 text-[#d8ff52]" : "border-white/8 text-[#9aa6b2]"}`}><span>Website watermark</span><span>{showWatermark ? "Visible" : "Hidden"}</span></button>
+              <p className="mt-2 text-xs leading-5 text-[#94a3b8]"><span className="font-mono">{WATERMARK_TEXT}</span> appears in the corner when enabled. The animated RouteLapse outro is always included.</p>
             </div>
 
             <div className="mt-5 rounded-xl border border-[#d8ff52]/15 bg-[#d8ff52]/[0.035] p-3 sm:mt-0 lg:mt-5">
-              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#d8ff52]"><Sparkles size={12} /> Local HD renderer</div>
-              <p className="text-[10px] leading-4 text-[#89958c]">Camera, overlays, and Full HD output stay in this browser.</p>
+              <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#d8ff52]"><Sparkles size={12} /> Local HD renderer</div>
+              <p className="text-xs leading-5 text-[#94a3b8]">Camera, overlays, and Full HD output stay in this browser.</p>
             </div>
 
             <div className="mt-5 sm:mt-0 lg:mt-5">
               <canvas ref={renderCanvasRef} className="hidden" aria-hidden="true" />
               {renderProgress && renderProgress.phase !== "complete" && (
                 <div className="mb-2">
-                  <div className="mb-1 flex justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-[#82909a]"><span>{renderProgress.phase === "preparing" ? "Loading HD map" : "Recording video"}</span><span>{Math.round(renderProgress.progress * 100)}%</span></div>
+                  <div className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]"><span>{renderProgress.phase === "preparing" ? "Loading HD map" : "Recording video"}</span><span>{Math.round(renderProgress.progress * 100)}%</span></div>
                   <div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#d8ff52] transition-[width]" style={{ width: `${renderProgress.progress * 100}%` }} /></div>
                 </div>
               )}
-              {renderError && <p className="mb-2 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-[10px] leading-4 text-red-200">{renderError}</p>}
+              {renderError && <p className="mb-2 rounded-lg border border-red-400/20 bg-red-400/8 p-2 text-xs leading-5 text-red-200">{renderError}</p>}
               {renderedVideo ? (
                 <a href={renderedVideo.url} download={renderedVideo.name} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d8ff52] px-4 py-3 text-xs font-bold text-[#0b0f03] transition hover:brightness-110">
                   <Download size={15} /> Download {renderedVideo.type} video
@@ -716,7 +716,7 @@ export function Studio() {
                   <Download size={15} /> {renderProgress ? "Cancel render" : "Render HD video"}
                 </button>
               )}
-              <p className="mt-2 text-center text-[9px] leading-4 text-[#64707a]">Rendered locally in real time. Keep this tab open.</p>
+              <p className="mt-2 text-center text-xs leading-5 text-[#94a3b8]">Rendered locally in real time. Keep this tab open.</p>
             </div>
           </div>
         </aside>
