@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Camera, Download, FileUp, Gauge, ImagePlus, LockKeyhole, Route } from "lucide-react";
+import { ArrowLeft, Camera, Download, FileUp, Flame, Gauge, ImagePlus, LockKeyhole, Route } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "User Guide",
-  description: "Learn how to import GPX and TCX activities, customize RouteLapse cameras and overlays, and render Full HD running-route videos.",
+  description: "Learn how to import GPX and TCX activities, create pace and elevation heat maps, customize RouteLapse cameras and overlays, and render Full HD running-route videos.",
   alternates: { canonical: "/guide" },
   openGraph: {
     title: "RouteLapse User Guide",
@@ -70,6 +70,20 @@ export default function GuidePage() {
           <h2 id="camera-modes" className="text-2xl font-bold tracking-tight sm:text-3xl">Camera modes</h2>
           <div className="mt-7 overflow-hidden rounded-2xl border border-white/8">
             {cameraRows.map(([name, description]) => <div key={name} className="grid gap-2 border-b border-white/8 bg-white/[0.02] p-5 last:border-b-0 sm:grid-cols-[140px_1fr]"><h3 className="font-bold text-[#d8ff52]">{name}</h3><p className="text-sm leading-6 text-[#929da7]">{description}</p></div>)}
+          </div>
+        </section>
+
+        <section className="mt-20" aria-labelledby="heat-maps">
+          <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#d8ff52]/10 text-[#d8ff52]"><Flame size={19} /></span><div><div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#77838f]">Route styling</div><h2 id="heat-maps" className="text-2xl font-bold tracking-tight sm:text-3xl">Heat maps</h2></div></div>
+          <p className="mt-5 max-w-3xl text-sm leading-6 text-[#929da7]">In the studio, open <strong className="font-semibold text-white">Route style</strong> and choose <strong className="font-semibold text-white">Heat map</strong>. RouteLapse colors each completed route segment from your chosen low color to high color, keeps the legend level over the map, and reproduces the same result in the exported video.</p>
+          <div className="mt-7 grid gap-4 md:grid-cols-2">
+            <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-6"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d8ff52]">Pace</div><h3 className="mt-2 text-lg font-bold">Slower → Faster</h3><p className="mt-3 text-sm leading-6 text-[#929da7]">Uses the timestamp and distance between consecutive GPS points. Faster sections move toward the high color. Pace heat requires usable timestamps in the GPX or TCX activity.</p></article>
+            <article className="rounded-2xl border border-white/8 bg-white/[0.025] p-6"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d8ff52]">Elevation</div><h3 className="mt-2 text-lg font-bold">Lower → Higher</h3><p className="mt-3 text-sm leading-6 text-[#929da7]">Uses recorded elevation for each route segment. Higher sections move toward the high color. Elevation heat requires altitude data in the imported activity.</p></article>
+          </div>
+          <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.02] p-5 sm:p-6">
+            <div className="flex justify-between text-[9px] font-bold uppercase tracking-[0.16em] text-[#87929c]"><span>Low intensity</span><span>High intensity</span></div>
+            <div className="mt-3 h-2 rounded-full bg-gradient-to-r from-[#3b82f6] via-[#9b65a1] to-[#ef4444]" />
+            <p className="mt-4 text-xs leading-5 text-[#7f8a94]">The scale ignores the most extreme GPS spikes when choosing its useful range, so one bad point does not flatten the colors for the rest of the route. Change either color in the studio; your selection saves automatically.</p>
           </div>
         </section>
 
