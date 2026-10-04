@@ -57,9 +57,10 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
   const verticalScale = Math.cos((displayedPitch * 0.72 * Math.PI) / 180);
   const selectedVerticalScale = cameraMode === "overview" ? 1 : Math.cos((pitch * 0.72 * Math.PI) / 180);
   const headingOverscan = cameraMode !== "overview" && forwardUp;
-  const frameDiagonal = Math.hypot(frameSize.width, frameSize.height);
-  const mapWidth = headingOverscan ? frameDiagonal : frameSize.width;
-  const mapHeight = (headingOverscan ? frameDiagonal : frameSize.height) / selectedVerticalScale;
+  const pitchExpandedHeight = frameSize.height / selectedVerticalScale;
+  const transformedFrameDiagonal = Math.hypot(frameSize.width, pitchExpandedHeight);
+  const mapWidth = headingOverscan ? transformedFrameDiagonal : frameSize.width;
+  const mapHeight = headingOverscan ? transformedFrameDiagonal : pitchExpandedHeight;
   const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
   const heatColors = useMemo(() => segmentHeatColors(track, heatMetric, heatLowColor, heatHighColor), [track, heatMetric, heatLowColor, heatHighColor]);
 

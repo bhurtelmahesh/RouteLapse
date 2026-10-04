@@ -75,6 +75,7 @@ input[type="range"] {
 .map-shell {
   aspect-ratio: var(--preview-ratio, 16 / 9);
   max-height: calc(100vh - 228px);
+  width: 100%;
 }
 
 .leaflet-container,

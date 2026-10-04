@@ -93,8 +93,10 @@ export function Studio() {
   const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
   const [renderedVideo, setRenderedVideo] = useState<{ url: string; name: string; type: string } | null>(null);
   const [renderError, setRenderError] = useState("");
+  const [previewStageSize, setPreviewStageSize] = useState({ width: 0, height: 0, viewportWidth: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const overlayInputRef = useRef<HTMLInputElement>(null);
+  const previewStageRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const overlayPointerRef = useRef<number | null>(null);
   const progressRef = useRef(progress);
@@ -107,6 +109,15 @@ export function Studio() {
     .filter(({ item }) => sportFilter === "all" || item.sport === sportFilter)
     .filter(({ item }) => item.name.toLowerCase().includes(search.trim().toLowerCase()));
   const outroProgress = brandOutroProgress(progress, duration);
+  const previewAspect = aspect === "16:9" ? 16 / 9 : aspect === "9:16" ? 9 / 16 : 1;
+  const previewAvailableWidth = Math.max(0, previewStageSize.width - 16);
+  const previewAvailableHeight = Math.max(0, previewStageSize.height - 16);
+  const previewWidth = previewStageSize.viewportWidth > 1100
+    ? Math.min(previewAvailableWidth, previewAvailableHeight * previewAspect)
+    : previewStageSize.viewportWidth > 760
+      ? Math.min(previewAvailableWidth, 620 * previewAspect)
+      : previewAvailableWidth;
+  const previewHeight = previewWidth / previewAspect;
 
   useEffect(() => {
     const settings = loadProjectSettings();
@@ -141,6 +152,25 @@ export function Studio() {
       setSettingsLoaded(true);
     });
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const stage = previewStageRef.current;
+    if (!stage) return;
+    const updateSize = () => {
+      const width = stage.clientWidth;
+      const height = stage.clientHeight;
+      const viewportWidth = window.innerWidth;
+      setPreviewStageSize((current) =>
+        Math.abs(current.width - width) < 0.5 && Math.abs(current.height - height) < 0.5 && current.viewportWidth === viewportWidth
+          ? current
+          : { width, height, viewportWidth },
+      );
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(stage);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -417,11 +447,14 @@ export function Studio() {
             <div className="rounded-lg border border-white/8 bg-[#0b0f14]/90 px-2.5 py-1.5 font-mono text-[10px] text-[#8d99a4]">1080p · 30 fps</div>
           </div>
 
-          <div className="flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/9 bg-[#05070a] p-2 shadow-[0_30px_80px_rgba(0,0,0,0.32)]">
+          <div ref={previewStageRef} className="flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/9 bg-[#05070a] p-2 shadow-[0_30px_80px_rgba(0,0,0,0.32)]">
             <div
               ref={previewRef}
-              className="map-shell relative w-full overflow-hidden rounded-xl bg-[#11161c]"
-              style={{ "--preview-ratio": aspectRatio[aspect] } as React.CSSProperties}
+              className="map-shell relative overflow-hidden rounded-xl bg-[#11161c]"
+              style={{
+                "--preview-ratio": aspectRatio[aspect],
+                ...(previewWidth > 0 && previewHeight > 0 ? { height: `${previewHeight}px`, width: `${previewWidth}px` } : {}),
+              } as React.CSSProperties}
             >
               <RouteMap track={track} progress={progress} duration={duration} cameraMode={cameraMode} pitch={pitch} cameraZoom={cameraZoom} forwardUp={forwardUp} overviewAutoFit={overviewAutoFit} lineColor={lineColor} routeStyle={routeStyle} heatMetric={heatMetric} heatLowColor={heatLowColor} heatHighColor={heatHighColor} mapStyle={mapStyle} />
               {routeStyle === "heat" && (
@@ -458,9 +491,9 @@ export function Studio() {
                 />
               )}
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/65 to-transparent p-4 sm:p-6">
-                <div>
+                <div className="min-w-0 max-w-[calc(100%-4.5rem)]">
                   {showWatermark && <div data-testid="website-watermark" className="font-mono text-[9px] font-bold tracking-[0.12em] text-[#d8ff52]">{WATERMARK_TEXT}</div>}
-                  <div className={`${showWatermark ? "mt-1" : ""} max-w-[300px] truncate text-lg font-semibold tracking-tight sm:text-2xl`}>{track.name}</div>
+                  <div className={`${showWatermark ? "mt-1" : ""} truncate text-lg font-semibold tracking-tight sm:text-2xl`}>{track.name}</div>
                 </div>
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 sm:p-6 sm:pt-16">
