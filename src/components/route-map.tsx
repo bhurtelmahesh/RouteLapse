@@ -38,6 +38,7 @@ function toLatLng(point: TrackPoint): [number, number] {
 }
 
 export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZoom, forwardUp, overviewAutoFit, lineColor, routeStyle, heatMetric, heatLowColor, heatHighColor, mapStyle }: Props) {
+  const frameRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const progressRef = useRef(progress);
@@ -49,14 +50,52 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
   const markerRef = useRef<CircleMarker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const reveal = cameraMode === "overview" ? 0 : endRevealProgress(progress, duration);
   const displayedPitch = pitch * (1 - reveal);
+  const pitchActive = cameraMode !== "overview" && displayedPitch > 0;
+  const verticalScale = Math.cos((displayedPitch * 0.72 * Math.PI) / 180);
+  const selectedVerticalScale = cameraMode === "overview" ? 1 : Math.cos((pitch * 0.72 * Math.PI) / 180);
+  const headingOverscan = cameraMode !== "overview" && forwardUp;
+  const frameDiagonal = Math.hypot(frameSize.width, frameSize.height);
+  const mapWidth = headingOverscan ? frameDiagonal : frameSize.width;
+  const mapHeight = (headingOverscan ? frameDiagonal : frameSize.height) / selectedVerticalScale;
   const heading = cameraMode !== "overview" && forwardUp ? headingAtProgress(track, progress) * (1 - reveal) : 0;
   const heatColors = useMemo(() => segmentHeatColors(track, heatMetric, heatLowColor, heatHighColor), [track, heatMetric, heatLowColor, heatHighColor]);
 
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const updateSize = () => {
+      const bounds = frame.getBoundingClientRect();
+      setFrameSize((current) =>
+        Math.abs(current.width - bounds.width) < 0.5 && Math.abs(current.height - bounds.height) < 0.5
+          ? current
+          : { width: bounds.width, height: bounds.height },
+      );
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isInteracting) return;
+    const endInteraction = () => setIsInteracting(false);
+    window.addEventListener("pointerup", endInteraction);
+    window.addEventListener("pointercancel", endInteraction);
+    window.addEventListener("blur", endInteraction);
+    return () => {
+      window.removeEventListener("pointerup", endInteraction);
+      window.removeEventListener("pointercancel", endInteraction);
+      window.removeEventListener("blur", endInteraction);
+    };
+  }, [isInteracting]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -112,6 +151,11 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
       markerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => mapRef.current?.invalidateSize({ animate: false, pan: false }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [mapWidth, mapHeight]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -214,7 +258,12 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
       const bounds = fullRouteRef.current?.getBounds();
       const routeCenter = bounds?.getCenter();
       const mapSize = map.getSize();
-      const revealPadding: Point = { x: Math.max(54, mapSize.x * 0.14), y: Math.max(54, mapSize.y * 0.18) } as Point;
+      const visibleWidth = frameSize.width || mapSize.x;
+      const visibleHeight = (frameSize.height || mapSize.y) / verticalScale;
+      const revealPadding: Point = {
+        x: Math.max(0, (mapSize.x - visibleWidth) / 2) + Math.max(54, visibleWidth * 0.14),
+        y: Math.max(0, (mapSize.y - visibleHeight) / 2) + Math.max(54, visibleHeight * 0.18),
+      } as Point;
       const fittedZoom = bounds ? map.getBoundsZoom(bounds, false, revealPadding) : cameraZoom;
       const endReveal = endRevealProgress(progress, duration);
       const center: [number, number] = routeCenter
@@ -225,20 +274,12 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
         : markerPosition;
       map.setView(center, cameraZoom + (fittedZoom - cameraZoom) * endReveal, { animate: false });
     }
-  }, [track, progress, duration, cameraMode, cameraZoom, lineColor, routeStyle, heatColors, heatHighColor, mapReady, isInteracting]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const mapPane = map?.getPane("mapPane");
-    if (!map || !mapPane) return;
-    const size = map.getSize();
-    mapPane.style.transformOrigin = `${size.x / 2}px ${size.y / 2}px`;
-    mapPane.style.rotate = heading && !isInteracting ? `${-heading}deg` : "none";
-  }, [heading, mapReady, isInteracting]);
+  }, [track, progress, duration, cameraMode, cameraZoom, lineColor, routeStyle, heatColors, heatHighColor, mapReady, isInteracting, frameSize.width, frameSize.height, verticalScale]);
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#080b0f] [perspective:1200px]"
+      ref={frameRef}
+      className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#080b0f]"
       aria-label="Animated route preview map"
       title="Drag to move. The camera flattens while interacting. Use +/−, double-click, or pinch to zoom."
     >
@@ -250,13 +291,15 @@ export function RouteMap({ track, progress, duration, cameraMode, pitch, cameraZ
         onPointerLeave={(event) => {
           if (!event.currentTarget.hasPointerCapture(event.pointerId)) setIsInteracting(false);
         }}
-        className={`h-full w-full rounded-[inherit] ease-out ${isInteracting ? "transition-none" : "transition-transform duration-500"}`}
+        className="absolute rounded-[inherit]"
         style={{
-          transform:
-            cameraMode === "overview" || isInteracting
-              ? "none"
-              : `rotateX(${Math.round(displayedPitch * 0.68)}deg) scale(${(1 + displayedPitch / 260).toFixed(3)})`,
-          transformOrigin: "50% 58%",
+          height: mapHeight || "100%",
+          left: "50%",
+          top: "50%",
+          transition: isInteracting ? "none" : "transform 500ms ease-out",
+          width: mapWidth || "100%",
+          transform: `translate(-50%, -50%)${pitchActive && !isInteracting ? ` scaleY(${verticalScale.toFixed(4)})` : ""}${heading && !isInteracting ? ` rotate(${-heading}deg)` : ""}`,
+          transformOrigin: "50% 50%",
         }}
       />
       <div className="absolute right-3 top-3 z-[550] grid overflow-hidden rounded-lg border border-white/15 bg-[#090d12]/90 shadow-lg backdrop-blur-sm">

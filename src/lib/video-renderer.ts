@@ -101,8 +101,10 @@ function visibleTiles(camera: Camera, width: number, height: number) {
 
 function urlsForFrame(track: Track, settings: SceneSettings, progress: number, width: number, height: number) {
   const camera = cameraAt(track, settings, progress, width, height);
+  const verticalScale = Math.cos((camera.pitch * 0.72 * Math.PI) / 180);
+  const mapHeight = height / verticalScale;
   return mapTileLayers[settings.mapStyle].flatMap((layer) =>
-    visibleTiles(camera, width, height).map((tile) => tileUrl(layer, camera.tileZoom, tile.x, tile.y)),
+    visibleTiles(camera, width, mapHeight).map((tile) => tileUrl(layer, camera.tileZoom, tile.x, tile.y)),
   );
 }
 
@@ -232,18 +234,19 @@ function drawFrame(
   context.fillRect(0, 0, width, height);
   const tilt = camera.pitch;
   const verticalScale = Math.cos((tilt * 0.72 * Math.PI) / 180);
+  const mapHeight = height / verticalScale;
   context.save();
-  context.translate(width / 2, height / 2 + height * (1 - verticalScale) * 0.08);
   context.scale(1, verticalScale);
+  context.translate(width / 2, mapHeight / 2);
   context.rotate((-camera.heading * Math.PI) / 180);
-  context.translate(-width / 2, -height / 2);
-  drawTiles(context, mapTileLayers[settings.mapStyle], images, camera, width, height);
+  context.translate(-width / 2, -mapHeight / 2);
+  drawTiles(context, mapTileLayers[settings.mapStyle], images, camera, width, mapHeight);
 
   const scale = Math.max(1, Math.min(width, height) / 720);
-  drawPath(context, track.points, camera, width, height, "rgba(38,44,50,.7)", 10 * scale);
-  if (settings.routeStyle === "heat") drawHeatPath(context, sample.path, heatColors, camera, width, height, 11 * scale);
-  else drawPath(context, sample.path, camera, width, height, settings.lineColor, 11 * scale);
-  const marker = screenPoint(sample.point, camera, width, height);
+  drawPath(context, track.points, camera, width, mapHeight, "rgba(38,44,50,.7)", 10 * scale);
+  if (settings.routeStyle === "heat") drawHeatPath(context, sample.path, heatColors, camera, width, mapHeight, 11 * scale);
+  else drawPath(context, sample.path, camera, width, mapHeight, settings.lineColor, 11 * scale);
+  const marker = screenPoint(sample.point, camera, width, mapHeight);
   context.beginPath();
   context.arc(marker.x, marker.y, 9 * scale, 0, Math.PI * 2);
   context.fillStyle = "#ffffff";
