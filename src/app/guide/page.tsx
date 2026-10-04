@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/guide" },
   openGraph: {
     title: "RouteLapse User Guide",
-    description: "A step-by-step guide to creating cinematic running-route videos from GPX and TCX files.",
+    description: "Create cinematic running-route videos with pace and elevation heat maps from GPX and TCX files.",
     url: "/guide",
   },
 };

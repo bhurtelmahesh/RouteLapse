@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s | RouteLapse",
   },
   description:
-    "Turn GPX running routes into cinematic HD map videos. Customize playback speed, camera angle, aspect ratio, and route style directly in your browser.",
+    "Turn GPX running routes into cinematic HD map videos with pace and elevation heat maps. Customize the camera, timing, overlays, and aspect ratio in your browser.",
   applicationName: "RouteLapse",
   keywords: [
     "GPX video maker",
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
     "GPS route animation",
     "map animation maker",
     "route video generator",
+    "running heat map video",
+    "pace heat map",
+    "elevation route map",
   ],
   authors: [{ name: "RouteLapse" }],
   creator: "RouteLapse",
@@ -45,13 +48,13 @@ export const metadata: Metadata = {
     siteName: "RouteLapse",
     title: "RouteLapse — Create Cinematic Running Route Videos",
     description:
-      "Turn GPX running routes into cinematic, share-ready map videos with customizable cameras and timing.",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "RouteLapse route video studio" }],
+      "Create cinematic GPX route videos with animated pace and elevation heat maps, custom cameras, overlays, and Full HD export.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "RouteLapse cinematic GPX route videos with pace and elevation heat maps" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "RouteLapse — Create Cinematic Running Route Videos",
-    description: "Turn GPX running routes into cinematic, share-ready map videos.",
+    description: "Create cinematic GPX route videos with animated pace and elevation heat maps and Full HD export.",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -89,13 +92,15 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     operatingSystem: "Any",
     browserRequirements: "Requires a modern web browser with JavaScript enabled.",
     description:
-      "A privacy-first web app for turning GPX running routes into cinematic map videos.",
+      "A privacy-first web app for turning GPX running routes into cinematic Full HD map videos with pace and elevation heat maps.",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     featureList: [
       "Import GPX running routes",
       "Animate routes on an interactive map",
+      "Visualize pace and elevation as animated route heat maps",
       "Customize camera angle and video timing",
       "Create landscape, portrait, and square videos",
+      "Export Full HD route videos with metrics and image overlays",
     ],
   };
 

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "RouteLapse route video studio";
+export const alt = "RouteLapse cinematic GPX route videos with pace and elevation heat maps";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const dynamic = "force-static";
@@ -40,11 +40,11 @@ export default function OpenGraphImage() {
           </div>
           <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>RouteLapse</div>
         </div>
-        <div style={{ fontSize: 66, fontWeight: 800, letterSpacing: -3, lineHeight: 1.04, marginTop: 48 }}>
-          Turn movement into motion.
+        <div style={{ display: "flex", flexDirection: "column", fontSize: 66, fontWeight: 800, letterSpacing: -3, lineHeight: 1.04, marginTop: 48 }}>
+          Your route.<br />In motion.
         </div>
         <div style={{ color: "#aab4bd", fontSize: 25, lineHeight: 1.4, marginTop: 28 }}>
-          Create cinematic route videos from your GPX runs.
+          Cinematic GPX videos with pace + elevation heat maps.
         </div>
       </div>
       <div
@@ -60,14 +60,25 @@ export default function OpenGraphImage() {
           width: 370,
         }}
       >
-        <svg height="300" viewBox="0 0 270 300" width="270">
+        <div style={{ display: "flex", gap: 8, position: "absolute", top: 26 }}>
+          <div style={{ background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.55)", borderRadius: 999, color: "#8db9ff", display: "flex", fontSize: 12, fontWeight: 800, letterSpacing: 1.5, padding: "7px 11px" }}>PACE</div>
+          <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 999, color: "#ff9898", display: "flex", fontSize: 12, fontWeight: 800, letterSpacing: 1.5, padding: "7px 11px" }}>ELEVATION</div>
+        </div>
+        <svg height="280" viewBox="0 0 270 300" width="270">
+          <defs>
+            <linearGradient id="routeHeat" x1="0%" x2="100%" y1="100%" y2="0%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="52%" stopColor="#9b65a1" />
+              <stop offset="100%" stopColor="#ef4444" />
+            </linearGradient>
+          </defs>
           <path d="M32 244 C76 232 60 177 111 166 C164 155 126 86 182 72 C219 63 230 33 242 24" fill="none" stroke="#38414a" strokeLinecap="round" strokeWidth="22" />
-          <path d="M32 244 C76 232 60 177 111 166 C164 155 126 86 182 72 C219 63 230 33 242 24" fill="none" stroke="#d8ff52" strokeLinecap="round" strokeWidth="9" />
-          <circle cx="32" cy="244" fill="#ffffff" r="13" stroke="#d8ff52" strokeWidth="7" />
-          <circle cx="242" cy="24" fill="#d8ff52" r="13" />
+          <path d="M32 244 C76 232 60 177 111 166 C164 155 126 86 182 72 C219 63 230 33 242 24" fill="none" stroke="url(#routeHeat)" strokeLinecap="round" strokeWidth="9" />
+          <circle cx="32" cy="244" fill="#ffffff" r="13" stroke="#3b82f6" strokeWidth="7" />
+          <circle cx="242" cy="24" fill="#ef4444" r="13" />
         </svg>
-        <div style={{ bottom: 28, color: "#d8ff52", display: "flex", fontSize: 18, fontWeight: 700, letterSpacing: 3, position: "absolute" }}>
-          GPX → HD VIDEO
+        <div style={{ bottom: 26, color: "#d8ff52", display: "flex", fontSize: 16, fontWeight: 700, letterSpacing: 2.2, position: "absolute" }}>
+          GPX → HEAT MAP → HD
         </div>
       </div>
     </div>,
